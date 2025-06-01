@@ -12,10 +12,20 @@ const nextConfig = {
   },
   typescript: {
     ignoreBuildErrors: true,
+  },
+  // Add webpack configuration to handle xlsx
+  webpack: (config, { isServer }) => {
+    // If it's on the server side, add xlsx to externals
+    if (isServer) {
+      config.externals = [...config.externals, 'xlsx'];
+    }
+    
+    return config;
   }
 };
 
 module.exports = nextConfig;
+
 
 
 
