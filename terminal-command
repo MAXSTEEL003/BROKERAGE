@@ -8,3 +8,6 @@ public/
 next.config.js
 package.json
 
+npm install --save-dev eslint
+
+

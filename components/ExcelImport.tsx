@@ -1,31 +1,99 @@
-import dynamic from 'next/dynamic';
-import { useState } from 'react';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { isBrowser } from '../lib/utils/browserCheck';
 
-// Dynamically import browser-dependent libraries
-const ExcelProcessor = dynamic(() => import('../lib/excel'), { 
-  ssr: false 
-});
+export default function ExcelImport({ onDataLoaded, onSheetSelect }) {
+  const [xlsx, setXlsx] = useState(null);
+  const [fileName, setFileName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [sheetNames, setSheetNames] = useState([]);
 
-export default function ExcelImport() {
-  const [file, setFile] = useState(null);
-  
-  const handleFileChange = (event) => {
-    setFile(event.target.files[0]);
-  };
-  
-  const handleImport = async () => {
-    if (!file || !isBrowser) return;
+  // Dynamically import browser-only libraries
+  useEffect(() => {
+    if (isBrowser) {
+      import('xlsx').then(module => {
+        setXlsx(module);
+      });
+    }
+  }, []);
+
+  const handleFileUpload = async (e) => {
+    if (!xlsx) return;
     
-    // Now it's safe to use the dynamically imported module
-    const data = await ExcelProcessor.processFile(file);
-    // Process data...
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setFileName(file.name);
+    setIsLoading(true);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const result = event.target?.result;
+        const wb = xlsx.read(result, { type: 'binary' });
+        
+        // Get all sheet names
+        const sheets = wb.SheetNames;
+        setSheetNames(sheets);
+        
+        // Set the first sheet as default
+        if (sheets.length > 0) {
+          const sheetName = sheets[0];
+          const ws = wb.Sheets[sheetName];
+          const parsedData = xlsx.utils.sheet_to_json(ws);
+          
+          // Get columns
+          const columns = parsedData.length > 0 
+            ? Object.keys(parsedData[0]).filter(col => 
+                !col.startsWith('_EMPTY') && 
+                col !== 'LH' && 
+                col !== 'DIFF AMOUNT' && 
+                col !== 'NET AMOUNT'
+              )
+            : [];
+          
+          onDataLoaded(parsedData, columns, sheets);
+          onSheetSelect(sheetName);
+        }
+      } catch (error) {
+        console.error("Error parsing Excel file:", error);
+        alert("Failed to parse Excel file");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    reader.readAsBinaryString(file);
   };
-  
+
   return (
-    <div>
-      <input type="file" onChange={handleFileChange} />
-      <button onClick={handleImport}>Import Excel</button>
+    <div className="card">
+      <div className="card-header">
+        <h2>Data Import</h2>
+      </div>
+      
+      <div className="card-body">
+        <div className="file-upload">
+          <input 
+            type="file" 
+            id="file-upload"
+            accept=".xlsx, .xls" 
+            onChange={handleFileUpload}
+            style={{ display: 'none' }} 
+          />
+          <label htmlFor="file-upload" className="file-upload-label">
+            <span className="file-upload-text">Import Excel File</span>
+          </label>
+        </div>
+        
+        {isLoading && <div>Loading...</div>}
+        
+        {fileName && !isLoading && (
+          <div className="file-info">
+            <p>File: {fileName}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
