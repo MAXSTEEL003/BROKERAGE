@@ -10,7 +10,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false, // Set to false in production
   },
 
   webpack: (config, { isServer }) => {
@@ -23,10 +23,8 @@ const nextConfig = {
     return config;
   },
 
-  // You can keep experimental section minimal or omit if not needed
-  experimental: {
-    appDir: false // Use this only if you're using the `pages/` directory (which you are)
-  }
+  // Remove these properties to help ensure a successful deployment
+  outputFileTracing: false,
 };
 
 module.exports = nextConfig;
