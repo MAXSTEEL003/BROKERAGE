@@ -23,8 +23,7 @@ const nextConfig = {
     return config;
   },
 
-  // Remove these properties to help ensure a successful deployment
-  outputFileTracing: false,
+  outputFileTracing: true, // Enable outputFileTracing
 };
 
 module.exports = nextConfig;
