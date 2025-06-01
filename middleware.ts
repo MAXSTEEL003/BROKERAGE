@@ -2,13 +2,16 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Add any middleware logic here
+  // Your middleware logic here
   return NextResponse.next();
 }
 
+// Configure which routes this middleware should run on
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Skip static files and API routes
+    '/((?!_next/static|_next/image|favicon.ico|api).*)',
   ],
 };
+
 
