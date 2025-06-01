@@ -2,7 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  output: 'standalone',
+  // Make sure experimental features for App Router are enabled
+  experimental: {
+    appDir: true,
+  },
+  // Other configs
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -12,5 +16,7 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+
+
 
 

@@ -9,12 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.5.28",
-    "next": "13.4.19",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "xlsx": "^0.18.5"
+    "next": "^13.4.19",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.5.7",
@@ -28,6 +25,8 @@
     "typescript": "^5.2.2"
   }
 }
+
+
 
 
 
