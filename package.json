@@ -12,8 +12,8 @@
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.5.28",
     "next": "13.4.19",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.2.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -30,9 +30,11 @@
   },
   "nextConfig": {
     "serverRuntimeConfig": {
-      "excludeClientPackages": ["jspdf", "jspdf-autotable", "xlsx"]
+      "excludeClientPackages": [
+        "jspdf",
+        "jspdf-autotable",
+        "xlsx"
+      ]
     }
   }
 }
-
-
