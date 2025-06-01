@@ -2,42 +2,31 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  // Enable standalone output for server deployment
+
+  // Enable standalone output for Vercel deployments
   output: 'standalone',
-  // Other configs
+
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Add webpack configuration to handle xlsx
+
   webpack: (config, { isServer }) => {
-    // If it's on the server side, add xlsx to externals
+    // Optional: exclude 'xlsx' from server-side bundle (not always needed)
     if (isServer) {
-      config.externals = [...config.externals, 'xlsx'];
+      config.externals = config.externals || [];
+      config.externals.push('xlsx');
     }
-    
+
     return config;
   },
-  // Updated to use stable API instead of experimental
-  serverExternalPackages: ['xlsx', 'jspdf', 'jspdf-autotable'],
-  
+
+  // You can keep experimental section minimal or omit if not needed
   experimental: {
-    // Enable optimization for package imports
-    optimizePackageImports: ['react-icons'],
-    // Enable Lightning CSS for better performance
-    useLightningcss: true,
+    appDir: false // Use this only if you're using the `pages/` directory (which you are)
   }
 };
 
 module.exports = nextConfig;
-
-
-
-
-
-
-
-
-
