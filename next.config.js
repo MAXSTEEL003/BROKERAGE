@@ -4,25 +4,29 @@ const nextConfig = {
   // Optimize for production
   reactStrictMode: true,
   swcMinify: true,
-  // Add trailing slashes for consistent URLs
-  trailingSlash: true,
-  // Improve image optimization
-  images: {
-    domains: [],
-    formats: ['image/avif', 'image/webp'],
-  },
+  // Set the source directory to src
+  distDir: '.next',
   // Disable type checking during build to prevent TypeScript errors
   typescript: {
-    // This will allow the build to succeed even with TypeScript errors
     ignoreBuildErrors: true,
   },
   // Disable ESLint during build to prevent ESLint errors
   eslint: {
-    // This will allow the build to succeed even with ESLint errors
     ignoreDuringBuilds: true,
   },
   // Optimize webpack configuration
   webpack: (config, { dev, isServer }) => {
+    // Handle browser-specific code
+    if (isServer) {
+      // For server-side rendering, provide empty mocks for browser-only objects
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    
     // Optimize for production builds
     if (!dev) {
       // Use memory cache for faster builds
@@ -41,7 +45,6 @@ const nextConfig = {
             chunks: 'all',
             minChunks: 2,
           },
-          // Only create one vendor bundle for the entire app
           vendor: {
             name: 'vendor',
             chunks: 'all',
@@ -57,4 +60,7 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+
+
+
 
