@@ -1,13 +1,3 @@
-# Your project should have this basic structure
-app/
-  layout.tsx
-  page.tsx
-  not-found.tsx
-  error.tsx
-public/
-next.config.js
-package.json
-
-npm install --save-dev eslint
-
+# Create server.js in the root directory
+New-Item -Path "server.js" -ItemType File -Force
 
