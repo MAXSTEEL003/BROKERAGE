@@ -50,10 +50,14 @@ const nextConfig = {
     return config;
   },
   // Ensure output is standalone for Vercel deployment
-  output: 'standalone'
+  output: 'standalone',
+  // Improve error handling
+  trailingSlash: false,
+  poweredByHeader: false
 };
 
 module.exports = nextConfig;
+
 
 
 
