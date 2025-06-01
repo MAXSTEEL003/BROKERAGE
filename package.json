@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "NEXT_TELEMETRY_DISABLED=1 next build",
+    "start": "NODE_ENV=production node server.js",
     "lint": "next lint"
   },
   "dependencies": {
@@ -26,4 +26,10 @@
     "typescript": "^5.2.2"
   }
 }
+
+
+
+
+
+
 

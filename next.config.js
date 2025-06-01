@@ -1,65 +1,62 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
-  // Optimize for production
   reactStrictMode: true,
   swcMinify: true,
-  // Set the source directory to src
-  distDir: '.next',
-  // Disable type checking during build to prevent TypeScript errors
+  // Optimize for production
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Disable ESLint during build to prevent ESLint errors
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Optimize webpack configuration
-  webpack: (config, { dev, isServer }) => {
-    // Handle browser-specific code
+  // Enhanced fix for 'self is not defined' error
+  webpack: (config, { isServer }) => {
     if (isServer) {
-      // For server-side rendering, provide empty mocks for browser-only objects
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      };
+      // Mark all client-side libraries as external for server build
+      config.externals = [
+        ...(config.externals || []),
+        'jspdf',
+        'jspdf-autotable',
+        'xlsx',
+        /^(canvas|jsdom|chart\.js|html-to-image)/,
+        // Add more potential problematic packages
+        'html2canvas',
+        'canvg',
+        'dompurify',
+        'core-js',
+        'fflate',
+        'atob',
+        'btoa'
+      ];
     }
     
-    // Optimize for production builds
-    if (!dev) {
-      // Use memory cache for faster builds
-      config.cache = {
-        type: 'memory',
-      }
-      
-      // Optimize chunk size
-      config.optimization.splitChunks = {
-        chunks: 'all',
-        cacheGroups: {
-          default: false,
-          vendors: false,
-          commons: {
-            name: 'commons',
-            chunks: 'all',
-            minChunks: 2,
-          },
-          vendor: {
-            name: 'vendor',
-            chunks: 'all',
-            test: /[\\/]node_modules[\\/]/,
-            priority: 10,
-          },
-        },
-      }
-    }
+    // Add fallbacks for browser APIs
+    if (!config.resolve) config.resolve = {};
+    if (!config.resolve.fallback) config.resolve.fallback = {};
     
-    return config
-  }
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      path: false,
+      crypto: false,
+      os: false,
+      stream: false,
+      process: false,
+      util: false,
+      buffer: false,
+      canvas: false,
+    };
+    
+    return config;
+  },
+  // Ensure output is standalone for Vercel deployment
+  output: 'standalone'
 };
 
 module.exports = nextConfig;
+
+
+
 
 
 
