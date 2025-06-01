@@ -20,13 +20,21 @@ const nextConfig = {
     
     return config;
   },
-  // Add server components configuration
-  serverComponents: true,
-  // Specify external packages that should not be bundled
-  serverExternalPackages: ['xlsx', 'jspdf', 'jspdf-autotable']
+  // Updated to use stable API instead of experimental
+  serverExternalPackages: ['xlsx', 'jspdf', 'jspdf-autotable'],
+  
+  experimental: {
+    // Enable optimization for package imports
+    optimizePackageImports: ['react-icons'],
+    // Enable Lightning CSS for better performance
+    useLightningcss: true,
+  }
 };
 
 module.exports = nextConfig;
+
+
+
 
 
 
