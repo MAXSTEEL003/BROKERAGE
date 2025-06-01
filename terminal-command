@@ -1,2 +1,10 @@
-# List all remote branches
-git remote show origin
+# Your project should have this basic structure
+app/
+  layout.tsx
+  page.tsx
+  not-found.tsx
+  error.tsx
+public/
+next.config.js
+package.json
+
