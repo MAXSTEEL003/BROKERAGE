@@ -2,10 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  // Make sure experimental features for App Router are enabled
-  experimental: {
-    appDir: true,
-  },
+  // Enable standalone output for server deployment
+  output: 'standalone',
   // Other configs
   eslint: {
     ignoreDuringBuilds: true,
@@ -21,10 +19,15 @@ const nextConfig = {
     }
     
     return config;
-  }
+  },
+  // Add server components configuration
+  serverComponents: true,
+  // Specify external packages that should not be bundled
+  serverExternalPackages: ['xlsx', 'jspdf', 'jspdf-autotable']
 };
 
 module.exports = nextConfig;
+
 
 
 
