@@ -1,81 +1,49 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { isBrowser } from '../lib/utils/browserCheck';
+import { useState } from 'react';
+import { processFile } from '../lib/excel';
 
-export default function ExcelImport({
-  onDataLoaded,
-  onSheetSelect,
-}: {
+interface ExcelImportProps {
   onDataLoaded: (data: any[], columns: string[], sheets: string[]) => void;
   onSheetSelect: (sheetName: string) => void;
-}) {
-  const [xlsx, setXlsx] = useState<typeof import('xlsx') | null>(null);
+}
+
+export default function ExcelImport({ onDataLoaded, onSheetSelect }: ExcelImportProps) {
   const [fileName, setFileName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sheetNames, setSheetNames] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (isBrowser) {
-      import('xlsx').then((module) => setXlsx(module));
-    }
-  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!xlsx) return;
-
     const file = e.target.files?.[0];
     if (!file) return;
 
     setFileName(file.name);
     setIsLoading(true);
 
-    const reader = new FileReader();
+    try {
+      const result = await processFile(file);
+      
+      if (Array.isArray(result) && result.length > 0) {
+        const columns = Object.keys(result[0]).filter(
+          (col) =>
+            !col.startsWith('_EMPTY') &&
+            col !== 'LH' &&
+            col !== 'DIFF AMOUNT' &&
+            col !== 'NET AMOUNT'
+        );
 
-    reader.onload = (event: ProgressEvent<FileReader>) => {
-      try {
-        // Type assertion: event.target is FileReader
-        const target = event.target;
-        if (!target) throw new Error('FileReader target is null');
-        const data = target.result;
-        if (!data) throw new Error('FileReader result is empty');
-
-        // data is ArrayBuffer because we use readAsArrayBuffer
-        const workbook = xlsx.read(data, { type: 'array' });
-
-        const sheets = workbook.SheetNames;
-        setSheetNames(sheets);
-
-        if (sheets.length > 0) {
-          const sheetName = sheets[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const parsedData = xlsx.utils.sheet_to_json(worksheet);
-
-          // typed as array of objects
-          const columns =
-            parsedData.length > 0
-              ? Object.keys(parsedData[0] as Record<string, unknown>).filter(
-                  (col) =>
-                    !col.startsWith('_EMPTY') &&
-                    col !== 'LH' &&
-                    col !== 'DIFF AMOUNT' &&
-                    col !== 'NET AMOUNT'
-                )
-              : [];
-
-          onDataLoaded(parsedData, columns, sheets);
-          onSheetSelect(sheetName);
-        }
-      } catch (error) {
-        console.error('Error parsing Excel file:', error);
-        alert('Failed to parse Excel file');
-      } finally {
-        setIsLoading(false);
+        // Assuming we only have one sheet for simplicity
+        const sheets = ['Sheet1'];
+        onDataLoaded(result, columns, sheets);
+        onSheetSelect(sheets[0]);
+      } else {
+        throw new Error('Invalid data format');
       }
-    };
-
-    // Use readAsArrayBuffer for better compatibility with xlsx
-    reader.readAsArrayBuffer(file);
+    } catch (error) {
+      console.error('Error processing Excel file:', error);
+      alert('Failed to process Excel file. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
