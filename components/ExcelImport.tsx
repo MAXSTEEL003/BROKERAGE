@@ -44,12 +44,13 @@ export default function ExcelImport({ onDataLoaded, onSheetSelect }: {
           const parsedData = xlsx.utils.sheet_to_json(ws);
 
           const columns = parsedData.length > 0
-            ? Object.keys(parsedData[0]).filter(col =>
-                !col.startsWith('_EMPTY') &&
-                col !== 'LH' &&
-                col !== 'DIFF AMOUNT' &&
-                col !== 'NET AMOUNT')
-            : [];
+          ? Object.keys(parsedData[0] as Record<string, any>).filter(col =>
+            !col.startsWith('_EMPTY') &&
+            col !== 'LH' &&
+            col !== 'DIFF AMOUNT' &&
+            col !== 'NET AMOUNT')
+          : [];
+
 
           onDataLoaded(parsedData, columns, sheets);
           onSheetSelect(sheetName);
