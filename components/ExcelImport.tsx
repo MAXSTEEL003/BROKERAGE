@@ -33,7 +33,11 @@ export default function ExcelImport({ onDataLoaded, onSheetSelect }: {
     reader.onload = (event) => {
       try {
         const result = event.target?.result;
-        const wb = xlsx.read(result, { type: 'binary' });
+
+        if (!result) throw new Error("Failed to read file data");
+
+        // xlsx.read expects ArrayBuffer if type is 'array'
+        const wb = xlsx.read(result, { type: 'array' });
 
         const sheets = wb.SheetNames;
         setSheetNames(sheets);
@@ -44,13 +48,12 @@ export default function ExcelImport({ onDataLoaded, onSheetSelect }: {
           const parsedData = xlsx.utils.sheet_to_json(ws);
 
           const columns = parsedData.length > 0
-          ? Object.keys(parsedData[0] as Record<string, any>).filter(col =>
-            !col.startsWith('_EMPTY') &&
-            col !== 'LH' &&
-            col !== 'DIFF AMOUNT' &&
-            col !== 'NET AMOUNT')
-          : [];
-
+            ? Object.keys(parsedData[0] as Record<string, any>).filter(col =>
+              !col.startsWith('_EMPTY') &&
+              col !== 'LH' &&
+              col !== 'DIFF AMOUNT' &&
+              col !== 'NET AMOUNT')
+            : [];
 
           onDataLoaded(parsedData, columns, sheets);
           onSheetSelect(sheetName);
@@ -62,7 +65,7 @@ export default function ExcelImport({ onDataLoaded, onSheetSelect }: {
         setIsLoading(false);
       }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file); // changed here to read as array buffer
   };
 
   return (
