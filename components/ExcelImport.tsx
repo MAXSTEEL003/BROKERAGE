@@ -1,79 +1,76 @@
-'use client';
-
-import { useState } from 'react';
-import { processFile } from '../lib/excel';
+import { useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
+import '../app/excel-import.css';
 
 interface ExcelImportProps {
-  onDataLoaded: (data: any[], columns: string[], sheets: string[]) => void;
-  onSheetSelect: (sheetName: string) => void;
+  onDataImport: (data: any[]) => void;
 }
 
-export default function ExcelImport({ onDataLoaded, onSheetSelect }: ExcelImportProps) {
-  const [fileName, setFileName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+const HEADER_MAP: Record<string, string> = {
+  'QTY': 'QUANTITY',
+  'QTLS': 'QUANTITY',
+  'QUINTALS': 'QUANTITY',
+  'QUINTAL': 'QUANTITY',
+  'qtls': 'QUANTITY',
+  'AMT': 'AMOUNT',
+  'TOTAL': 'AMOUNT',
+  'TOTAL AMOUNT': 'AMOUNT',
+  'VALUE': 'AMOUNT',
+  'Amount': 'AMOUNT',
+  'PLACE': 'PLACE',
+  'BRAND': 'BRAND',
+  'RATE': 'RATE',
+  'DATE': 'DATE'
+};
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+const ExcelImport: React.FC<ExcelImportProps> = ({ onDataImport }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState('');
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
-    setFileName(file.name);
-    setIsLoading(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
-    try {
-      const result = await processFile(file);
-      
-      if (Array.isArray(result) && result.length > 0) {
-        const columns = Object.keys(result[0]).filter(
-          (col) =>
-            !col.startsWith('_EMPTY') &&
-            col !== 'LH' &&
-            col !== 'DIFF AMOUNT' &&
-            col !== 'NET AMOUNT'
-        );
+        const normalizedData = jsonData.map(row => {
+          const normalizedRow: any = {};
+          Object.keys(row).forEach(key => {
+            const cleaned = key.trim().toUpperCase();
+            const mapped = HEADER_MAP[cleaned] || cleaned;
+            normalizedRow[mapped] = row[key];
+          });
+          return normalizedRow;
+        });
 
-        // Assuming we only have one sheet for simplicity
-        const sheets = ['Sheet1'];
-        onDataLoaded(result, columns, sheets);
-        onSheetSelect(sheets[0]);
-      } else {
-        throw new Error('Invalid data format');
+        setError('');
+        onDataImport(normalizedData);
+      } catch (err) {
+        setError('Failed to parse file.');
+        console.error('Excel parsing error:', err);
       }
-    } catch (error) {
-      console.error('Error processing Excel file:', error);
-      alert('Failed to process Excel file. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <h2>Data Import</h2>
-      </div>
-
-      <div className="card-body">
-        <div className="file-upload">
-          <input
-            type="file"
-            id="file-upload"
-            accept=".xlsx, .xls"
-            onChange={handleFileUpload}
-            style={{ display: 'none' }}
-          />
-          <label htmlFor="file-upload" className="file-upload-label">
-            <span className="file-upload-text">Import Excel File</span>
-          </label>
-        </div>
-
-        {isLoading && <div>Loading...</div>}
-
-        {fileName && !isLoading && (
-          <div className="file-info">
-            <p>File: {fileName}</p>
-          </div>
-        )}
-      </div>
+    <div className="excel-import">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={handleFileUpload}
+      />
+      {error && <div className="error-alert">{error}</div>}
     </div>
   );
-}
+};
+
+export default ExcelImport;
