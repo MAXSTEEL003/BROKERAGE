@@ -1,10 +1,6 @@
 {
   "compilerOptions": {
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -16,12 +12,14 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "strictNullChecks": true
+    "plugins": [{ "name": "next" }],
+    "strictNullChecks": true,
+
+    // ✅ Add these 2 lines below:
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "include": [
     "next-env.d.ts",
@@ -29,7 +27,5 @@
     "**/*.ts",
     "**/*.tsx"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
