@@ -256,7 +256,7 @@ export default function Home() {
                         userBillDate={userBillDate}
                         periodOfBilling={periodOfBilling}
                         selectedShopLoc={selectedShopLocation}
-                        onPeriodOfBillingChange={setPeriodOfBilling} on={undefined}                      
+                        onPeriodOfBillingChange={setPeriodOfBilling}                  
                     />
                   )}
                 </div>

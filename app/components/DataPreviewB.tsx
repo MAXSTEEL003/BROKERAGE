@@ -22,7 +22,6 @@ interface Props {
   userBillDate: string;
   periodOfBilling: string;
   onPeriodOfBillingChange: (value: string) => void;
-  on
 }
 
 const findQuantityField = (row: any) => {
@@ -129,7 +128,7 @@ doc.text('Tejas Canvassing', pageWidth / 2, finalY, { align: 'center' });
 
 doc.setTextColor(0, 0, 0);
 doc.setFontSize(10);
-doc.setFont('helvetica', 'normal');
+doc.setFont('helvetica', 'bold');
 
 // Add more spacing between lines
 doc.text(
@@ -146,17 +145,24 @@ doc.text(
   { align: 'center' }
 );
 
-finalY += 70;
+doc.setLineWidth(1.5); // Thickness of the line
+doc.line(40, finalY + 60, pageWidth - 40, finalY + 60); // (x1, y1, x2, y2)
 
-    doc.setFontSize(15);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`BROKERAGE FROM : ${periodOfBilling}`, pageWidth / 2, finalY, { align: 'center' });
-    finalY += 35;
+finalY += 90;
+
+doc.setFontSize(15);
+doc.setFont('helvetica', 'bold');
+
+const brokerageText = `Brokerage  From : ${periodOfBilling}`;
+doc.text(brokerageText, pageWidth / 2, finalY, { align: 'center' });
+
+finalY += 35;
+
 
     doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
     doc.text(`Bill No: ${userBillNo || '-'}`, marginX, finalY);
-    doc.text(`Date: ${userBillDate || '-'}`, pageWidth - marginX, finalY, { align: 'right' });
+    doc.text(`Date: ${userBillDate ? formatDate(userBillDate) : '-'}`, pageWidth - marginX, finalY, { align: 'right' });
     finalY += 20;
 
     autoTable(doc, {
@@ -179,9 +185,10 @@ finalY += 70;
     finalY = (doc as any).lastAutoTable.finalY + 20;
 
 
+// First Table
 autoTable(doc, {
   startY: finalY,
-  head: [['#', 'Date', 'Miller', 'Bill No', 'Quantity', 'Rate', 'Commission']],
+  head: [['#', 'Date', 'Miller', 'Bill No', 'Quantity', 'Rate', 'Amount']],
   body: calculatedRows.map(row => [
     row.idx,
     row.date,
@@ -189,42 +196,53 @@ autoTable(doc, {
     row.billNo,
     row.quantity,
     row.rate,
-    row.commission
+    row.commission // 👈 Make sure this is amount, not commission
   ]),
   styles: {
     fontSize: 9,
-    halign: 'left' // Default alignment for body cells
+    halign: 'left'
   },
   theme: 'grid',
   margin: { left: marginX, right: marginX },
   headStyles: {
     fillColor: [0, 123, 255],
     textColor: 255,
-    halign: 'center' // Center-align header text
+    halign: 'center'
   },
   columnStyles: {
-    0: { halign: 'center' }, // #
-    4: { halign: 'center' }, // Quantity
-    5: { halign: 'center' }, // Rate
-    6: { halign: 'center' }  // Commission
+    0: { halign: 'center' },
+    3: { halign: 'center' },
+    4: { halign: 'center' },
+    5: { halign: 'center' },
+    6: { halign: 'center' }
   }
 });
 
+// Second Row (aligned under "Quantity" and "Amount")
 finalY = (doc as any).lastAutoTable.finalY + 20;
 
 autoTable(doc, {
   startY: finalY,
+  head: [['Summary','Quantity','Amount']],
   body: [
-    ['Total Commission', totalCommission.toFixed(2)]
+    ['Total', totalQuantity.toFixed(2), totalCommission.toFixed(2)]
   ],
   columnStyles: {
-    0: { halign: 'center' }, // Label column
-    1: { halign: 'center' }  // Value column
+    0: { halign: 'center' },
+    1: { halign: 'center' }, // Quantity column
+    2: { halign: 'center' }  // Amount column
   },
-  styles: { fontSize: 10 ,fontStyle : 'bold' },
+  styles: {
+    fontSize: 10,
+    fontStyle: 'bold'
+  },
   theme: 'grid',
-  margin: { left: marginX, right: marginX }
+  margin: { left: marginX, right: marginX },
+  headStyles:{
+    halign: 'center'
+  }
 });
+
 
     finalY = (doc as any).lastAutoTable.finalY + 20;
 autoTable(doc, {
@@ -241,9 +259,11 @@ autoTable(doc, {
     halign: 'center' // ✅ Center-align header row
   },
   columnStyles: {
-    1: { halign: 'right' },  // A/C No
-    3: { halign: 'center' }, // IFSC
-    4: { halign: 'right' }   // UPI NO
+    0: { halign: 'center' },  // A/C No
+    1: { halign: 'center' }, // IFSC
+    2: { halign: 'center' },
+    3: { halign: 'center' } ,
+    4: { halign: 'center' }  
   },
   theme: 'grid',
   margin: { left: marginX, right: marginX }
