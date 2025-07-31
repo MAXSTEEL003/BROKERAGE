@@ -134,3 +134,17 @@
   background-color: #ccc;
   cursor: not-allowed;
 }
+
+.buyer-info {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.buyer-info p {
+  margin: 0;
+  font-weight: 500;
+}

@@ -17,8 +17,12 @@ interface Props {
   totalCommission: number;
   selectedMiller: string;
   selectedBuyer: string;
-  userBillNo: string;     // ✅ New
+  selectedShopLoc: string; // ✅ New
+  userBillNo: string;
   userBillDate: string;
+  periodOfBilling: string;
+  onPeriodOfBillingChange: (value: string) => void;
+  on
 }
 
 const findQuantityField = (row: any) => {
@@ -48,7 +52,7 @@ const formatDate = (value: any): string => {
   return String(value);
 };
 
-const DataPreview: React.FC<Props> = ({
+const DataPreviewBuyerSide: React.FC<Props> = ({
   data,
   commissionRate,
   commissionType,
@@ -61,6 +65,9 @@ const DataPreview: React.FC<Props> = ({
   selectedBuyer,
   userBillNo,
   userBillDate,
+  periodOfBilling,
+  onPeriodOfBillingChange,
+  selectedShopLoc,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
@@ -97,7 +104,7 @@ const DataPreview: React.FC<Props> = ({
         quantity,
         rate,
         amount,
-        commission: commission.toFixed(2)
+        commission: commission.toFixed(2),
       };
     });
   }, [data, commissionRate, commissionType, fixedRate]);
@@ -115,107 +122,144 @@ const DataPreview: React.FC<Props> = ({
     const marginX = 40;
     let finalY = 40;
 
-    // Header
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Tejas Canvassing', pageWidth / 2, finalY, { align: 'center' });
+doc.setTextColor(0, 0, 255);
+doc.setFontSize(25);
+doc.setFont('helvetica', 'bold');
+doc.text('Tejas Canvassing', pageWidth / 2, finalY, { align: 'center' });
 
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('No. 123, 1st Floor, 4th main Road, Yeshwanthpur,APMC Yard,Bengaluru - 560022', pageWidth / 2, finalY + 20, { align: 'center' });
-    doc.text('Phone: 9916416995', pageWidth / 2, finalY + 35, { align: 'center' });
-    finalY += 60;
-     
-doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
+doc.setTextColor(0, 0, 0);
+doc.setFontSize(10);
+doc.setFont('helvetica', 'normal');
 
-// Left-aligned Bill No
+// Add more spacing between lines
+doc.text(
+  'No. 123, 1st Floor, 4th main Road, Yeshwanthpur,APMC Yard,Bengaluru - 560022',
+  pageWidth / 2,
+  finalY + 25,
+  { align: 'center' }
+);
+
+doc.text(
+  'Phone: 9916416995 ; PAN NO: AEBPA6445G',
+  pageWidth / 2,
+  finalY + 45,
+  { align: 'center' }
+);
+
+finalY += 70;
+
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`BROKERAGE FROM : ${periodOfBilling}`, pageWidth / 2, finalY, { align: 'center' });
+    finalY += 35;
+
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
     doc.text(`Bill No: ${userBillNo || '-'}`, marginX, finalY);
-
-// Right-aligned Date
     doc.text(`Date: ${userBillDate || '-'}`, pageWidth - marginX, finalY, { align: 'right' });
-
     finalY += 20;
 
-    // Bill Info Table
     autoTable(doc, {
-     startY: finalY,
-     head: [['Buyer',]],
-     body: [[selectedBuyer || '-']],
-     theme: 'grid',
-     styles: {
-     fontSize: 10,
-     halign: 'center' // ✅ Center-align both head and body
+      startY: finalY,
+      head: [['TO', 'ROAD']],
+      body: [[selectedBuyer || '-', selectedShopLoc || '-']],
+      theme: 'grid',
+      styles: {
+        fontSize: 10,
+        halign: 'center'
+      },
+      headStyles: {
+        fillColor: [255, 193, 7],
+        textColor: 0,
+        halign: 'center'
+      },
+      margin: { left: marginX, right: marginX }
+    });
+
+    finalY = (doc as any).lastAutoTable.finalY + 20;
+
+
+autoTable(doc, {
+  startY: finalY,
+  head: [['#', 'Date', 'Miller', 'Bill No', 'Quantity', 'Rate', 'Commission']],
+  body: calculatedRows.map(row => [
+    row.idx,
+    row.date,
+    row.miller,
+    row.billNo,
+    row.quantity,
+    row.rate,
+    row.commission
+  ]),
+  styles: {
+    fontSize: 9,
+    halign: 'left' // Default alignment for body cells
   },
-     headStyles: {
-     fillColor: [255, 193, 7],
-     textColor: 0,
-     halign: 'center' // ✅ Center-align header
-    },
-      margin: { left: marginX, right: marginX }
-     });
+  theme: 'grid',
+  margin: { left: marginX, right: marginX },
+  headStyles: {
+    fillColor: [0, 123, 255],
+    textColor: 255,
+    halign: 'center' // Center-align header text
+  },
+  columnStyles: {
+    0: { halign: 'center' }, // #
+    4: { halign: 'center' }, // Quantity
+    5: { halign: 'center' }, // Rate
+    6: { halign: 'center' }  // Commission
+  }
+});
+
+finalY = (doc as any).lastAutoTable.finalY + 20;
+
+autoTable(doc, {
+  startY: finalY,
+  body: [
+    ['Total Commission', totalCommission.toFixed(2)]
+  ],
+  columnStyles: {
+    0: { halign: 'center' }, // Label column
+    1: { halign: 'center' }  // Value column
+  },
+  styles: { fontSize: 10 ,fontStyle : 'bold' },
+  theme: 'grid',
+  margin: { left: marginX, right: marginX }
+});
 
     finalY = (doc as any).lastAutoTable.finalY + 20;
+autoTable(doc, {
+  startY: finalY,
+  head: [['Acc Name', 'A/C No', 'Bank Name', 'IFSC', 'UPI NO']],
+  body: [['TEJAS CANVASSING', '922020031617300', 'Axis Bank', 'UTIB0004052', '9916416995']],
+  styles: {
+    fontSize: 9,
+    halign: 'left' // Default: left-aligned
+  },
+  headStyles: {
+    fillColor: [76, 175, 80],
+    textColor: 255,
+    halign: 'center' // ✅ Center-align header row
+  },
+  columnStyles: {
+    1: { halign: 'right' },  // A/C No
+    3: { halign: 'center' }, // IFSC
+    4: { halign: 'right' }   // UPI NO
+  },
+  theme: 'grid',
+  margin: { left: marginX, right: marginX }
+});
 
-    // Summary
-    autoTable(doc, {
-      startY: finalY,
-      head: [['Summary', 'Value']],
-      body: [
-        ['Total Transactions', totalTransactions.toString()],
-        ['Total Quantity (Quintals)', totalQuantity.toFixed(2)],
-        ['Total Amount', totalAmount.toFixed(2)],
-        ['Total Commission', totalCommission.toFixed(2)]
-      ],
-      headStyles: { fillColor: [63, 81, 181], textColor: 255 },
-      theme: 'grid',
-      styles: { fontSize: 10 },
-      margin: { left: marginX, right: marginX }
-    });
+    finalY = (doc as any).lastAutoTable.finalY + 40;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Authorized Signatory', pageWidth - marginX, finalY, { align: 'right' });
 
-    finalY = (doc as any).lastAutoTable.finalY + 20;
+    const safeBuyer = selectedBuyer && selectedBuyer !== 'all'
+      ? selectedBuyer.replace(/[^a-z0-9]/gi, '_')
+      : 'AllBuyers';
 
-    // Transactions Table
-    autoTable(doc, {
-      startY: finalY,
-      head: [['#', 'Date', 'Buyer', 'Miller', 'Bill No', 'Quantity', 'Rate', 'Amount', 'Commission']],
-      body: calculatedRows.map(row => [
-        row.idx,
-        row.date,
-        row.buyer,
-        row.miller,
-        row.billNo,
-        row.quantity,
-        row.rate,
-        row.amount,
-        row.commission
-      ]),
-      styles: { fontSize: 9 },
-      theme: 'grid',
-      margin: { left: marginX, right: marginX },
-      headStyles: { fillColor: [0, 123, 255], textColor: 255 }
-    });
-
-    finalY = (doc as any).lastAutoTable.finalY + 20;
-
-    // Bank Details
-    autoTable(doc, {
-      startY: finalY,
-      head: [['Bank Name', 'Branch', 'IFSC Code', 'Account No', 'UPI']],
-      body: [['HDFC BANK ', 'Yeshwanthpur', 'CNRB0001234', '1234567890', '9916416995@upi']],
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [76, 175, 80], textColor: 255 },
-      theme: 'grid',
-      margin: { left: marginX, right: marginX }
-    });
-
-   const safeBuyer = selectedBuyer && selectedBuyer !== 'all'
-   ? selectedBuyer.replace(/[^a-z0-9]/gi, '_')
-   : 'AllBuyers';
-
-   const fileName = `${safeBuyer}.pdf`;
-   doc.save(fileName);
-
+    const fileName = `${safeBuyer}.pdf`;
+    doc.save(fileName);
   };
 
   return (
@@ -223,6 +267,10 @@ doc.setFontSize(12);
       <div className="preview-header">
         <div className="header-title">
           <h3>Buyer Side View</h3>
+          <div className="buyer-info">
+            <p><strong>Buyer:</strong> {selectedBuyer}</p>
+            <p><strong>Shop Location:</strong> {selectedShopLoc}</p>
+          </div>
           <button className="export-button" onClick={exportToPDF}>Export to PDF</button>
         </div>
       </div>
@@ -279,4 +327,4 @@ doc.setFontSize(12);
   );
 };
 
-export default DataPreview;
+export default DataPreviewBuyerSide;

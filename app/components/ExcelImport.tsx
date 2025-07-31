@@ -1,9 +1,11 @@
+// components/ExcelImport.tsx
 import { useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import '../styles/excel-import.css';
 
 interface ExcelImportProps {
   onDataImport: (data: any[]) => void;
+  onMappingExtracted: (map: { [buyer: string]: string }) => void;
 }
 
 const HEADER_MAP: Record<string, string> = {
@@ -11,19 +13,19 @@ const HEADER_MAP: Record<string, string> = {
   'QTLS': 'QUANTITY',
   'QUINTALS': 'QUANTITY',
   'QUINTAL': 'QUANTITY',
-  'qtls': 'QUANTITY',
   'AMT': 'AMOUNT',
   'TOTAL': 'AMOUNT',
   'TOTAL AMOUNT': 'AMOUNT',
   'VALUE': 'AMOUNT',
-  'Amount': 'AMOUNT',
-  'PLACE': 'PLACE',
-  'BRAND': 'BRAND',
   'RATE': 'RATE',
-  'DATE': 'DATE'
+  'DATE': 'DATE',
+  'PLACE': 'PLACE',
+  'SHOP LOC': 'SHOP LOC',
+  'BUYER': 'BUYER',
+  'BUYER NAME': 'BUYER'
 };
 
-const ExcelImport: React.FC<ExcelImportProps> = ({ onDataImport }) => {
+const ExcelImport: React.FC<ExcelImportProps> = ({ onDataImport, onMappingExtracted }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
 
@@ -40,6 +42,7 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ onDataImport }) => {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
+        // Normalize headers
         const normalizedData = jsonData.map(row => {
           const normalizedRow: any = {};
           Object.keys(row).forEach(key => {
@@ -50,13 +53,26 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ onDataImport }) => {
           return normalizedRow;
         });
 
+        // Extract buyer => shop loc mapping
+        const buyerShopLocMap: { [buyer: string]: string } = {};
+        normalizedData.forEach(row => {
+          const buyer = row['BUYER']?.trim();
+          const shopLoc = row['SHOP LOC']?.trim();
+          if (buyer && shopLoc && !buyerShopLocMap[buyer]) {
+            buyerShopLocMap[buyer] = shopLoc;
+            console.log('Mapped:', buyer, '->', shopLoc);
+          }
+        });
+
         setError('');
         onDataImport(normalizedData);
+        onMappingExtracted(buyerShopLocMap);
       } catch (err) {
-        setError('Failed to parse file.');
-        console.error('Excel parsing error:', err);
+        setError('Failed to parse Excel file.');
+        console.error(err);
       }
     };
+
     reader.readAsArrayBuffer(file);
   };
 

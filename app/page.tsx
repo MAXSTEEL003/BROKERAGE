@@ -26,6 +26,13 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [periodOfBilling, setPeriodOfBilling] = useState('APR 2025 to JULY 2025');
+  const [buyerShopLocMap, setBuyerShopLocMap] = useState<{ [key: string]: string }>({});
+  const [selectedShopLocation, setSelectedShopLocation] = useState('');
+
+  const handlePeriodOfBillingChange = (value: string) => {
+    setPeriodOfBilling(value);
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -34,14 +41,29 @@ export default function Home() {
   const handleDataImport = async (data: any[]) => {
     try {
       setLoading(true);
-      const normalized = data.map(row => ({
-        ...row,
-        'BUYER NAME': row['BUYER NAMER'] || row['BUYER NAME'],
-      }));
+
+      const normalized = data.map(row => {
+        const buyerName = row['BUYER NAMER'] || row['BUYER NAME'] || '';
+        return {
+          ...row,
+          'BUYER NAME': buyerName,
+        };
+      });
+
+      const shopLocMap: Record<string, string> = {};
+      normalized.forEach((row: any) => {
+        const buyer = row['BUYER NAME']?.toString().trim().toLowerCase();
+        const shopLoc = row['SHOP LOC']?.toString().trim();
+        if (buyer && shopLoc && !shopLocMap[buyer]) {
+          shopLocMap[buyer] = shopLoc;
+        }
+      });
+
+      setBuyerShopLocMap(shopLocMap);
       setExcelData(normalized);
 
-      const uniqueMillers = Array.from(new Set(data.map(row => row['MILLER NAME'] || ''))).filter(Boolean);
-      const uniqueBuyers = Array.from(new Set(data.map(row => row['BUYER NAME'] || ''))).filter(Boolean);
+      const uniqueMillers = Array.from(new Set(normalized.map(row => row['MILLER NAME'] || ''))).filter(Boolean);
+      const uniqueBuyers = Array.from(new Set(normalized.map(row => row['BUYER NAME'] || ''))).filter(Boolean);
 
       setMillers(uniqueMillers);
       setBuyers(uniqueBuyers);
@@ -113,53 +135,21 @@ export default function Home() {
     let filteredBuyers: string[] = [];
 
     if (calculationSide === 'miller') {
-      filteredMillers =
-        selectedBuyer === 'all'
-          ? Array.from(new Set(excelData.map(row => row['MILLER NAME']).filter(Boolean)))
-          : Array.from(
-              new Set(
-                excelData
-                  .filter(row => row['BUYER NAME'] === selectedBuyer)
-                  .map(row => row['MILLER NAME'])
-                  .filter(Boolean)
-              )
-            );
+      filteredMillers = selectedBuyer === 'all'
+        ? Array.from(new Set(excelData.map(row => row['MILLER NAME']).filter(Boolean)))
+        : Array.from(new Set(excelData.filter(row => row['BUYER NAME'] === selectedBuyer).map(row => row['MILLER NAME']).filter(Boolean)));
 
-      filteredBuyers =
-        selectedMiller === 'all'
-          ? Array.from(new Set(excelData.map(row => row['BUYER NAME']).filter(Boolean)))
-          : Array.from(
-              new Set(
-                excelData
-                  .filter(row => row['MILLER NAME'] === selectedMiller)
-                  .map(row => row['BUYER NAME'])
-                  .filter(Boolean)
-              )
-            );
+      filteredBuyers = selectedMiller === 'all'
+        ? Array.from(new Set(excelData.map(row => row['BUYER NAME']).filter(Boolean)))
+        : Array.from(new Set(excelData.filter(row => row['MILLER NAME'] === selectedMiller).map(row => row['BUYER NAME']).filter(Boolean)));
     } else if (calculationSide === 'buyer') {
-      filteredBuyers =
-        selectedMiller === 'all'
-          ? Array.from(new Set(excelData.map(row => row['BUYER NAME']).filter(Boolean)))
-          : Array.from(
-              new Set(
-                excelData
-                  .filter(row => row['MILLER NAME'] === selectedMiller)
-                  .map(row => row['BUYER NAME'])
-                  .filter(Boolean)
-              )
-            );
+      filteredBuyers = selectedMiller === 'all'
+        ? Array.from(new Set(excelData.map(row => row['BUYER NAME']).filter(Boolean)))
+        : Array.from(new Set(excelData.filter(row => row['MILLER NAME'] === selectedMiller).map(row => row['BUYER NAME']).filter(Boolean)));
 
-      filteredMillers =
-        selectedBuyer === 'all'
-          ? Array.from(new Set(excelData.map(row => row['MILLER NAME']).filter(Boolean)))
-          : Array.from(
-              new Set(
-                excelData
-                  .filter(row => row['BUYER NAME'] === selectedBuyer)
-                  .map(row => row['MILLER NAME'])
-                  .filter(Boolean)
-              )
-            );
+      filteredMillers = selectedBuyer === 'all'
+        ? Array.from(new Set(excelData.map(row => row['MILLER NAME']).filter(Boolean)))
+        : Array.from(new Set(excelData.filter(row => row['BUYER NAME'] === selectedBuyer).map(row => row['MILLER NAME']).filter(Boolean)));
     }
 
     setMillers(filteredMillers);
@@ -176,41 +166,27 @@ export default function Home() {
   const filteredData = useMemo(() => getFilteredData(), [excelData, selectedMiller, selectedBuyer]);
   const totalQuantity = useMemo(() => calculateTotalQuantity(filteredData), [filteredData]);
   const totalAmount = useMemo(() => calculateTotalAmount(filteredData), [filteredData]);
-  const totalCommission = useMemo(
-    () => calculateTotalCommission(filteredData),
-    [filteredData, commissionRate, commissionType, fixedRate]
-  );
+  const totalCommission = useMemo(() => calculateTotalCommission(filteredData), [filteredData, commissionRate, commissionType, fixedRate]);
 
   return (
     <main className="container">
       <header className="header">
-        <h1>TEJAS ANALYTICS PLATFORM</h1>
-        <p>Enterprise solution for miller-buyer transaction analysis</p>
+        <h1>TEJAS CANVASSING</h1>
+        <p>Brokerage Commission Calculator</p>
       </header>
 
       {isClient ? (
         <>
           <div className="card">
             <h2>Import Your Data</h2>
-            <ExcelImport onDataImport={handleDataImport} />
+            <ExcelImport
+              onDataImport={handleDataImport}
+              onMappingExtracted={setBuyerShopLocMap}
+            />
             {loading && <div className="loading">Importing data, please wait...</div>}
             <div className="toggle-buttons">
-              <button
-                onClick={() => setCalculationSide('miller')}
-                className={calculationSide === 'miller' ? 'active' : ''}
-              >
-                Miller Side
-              </button>
-              <button
-                onClick={() => setCalculationSide('buyer')}
-                className={calculationSide === 'buyer' ? 'active' : ''}
-              >
-                Buyer Side
-              </button>
-              <button
-                onClick={() => setCalculationSide('miller')}
-                className={calculationSide === 'miller' ? 'active' : ''}
-              ></button>
+              <button onClick={() => setCalculationSide('miller')} className={calculationSide === 'miller' ? 'active' : ''}>Miller Side</button>
+              <button onClick={() => setCalculationSide('buyer')} className={calculationSide === 'buyer' ? 'active' : ''}>Buyer Side</button>
             </div>
 
             {error && <div className="error-alert">{error}</div>}
@@ -234,18 +210,16 @@ export default function Home() {
                   onBillDateChange={setUserBillDate}
                   billNumber={userBillNo}
                   billDate={userBillDate}
+                  periodOfBilling={periodOfBilling}
+                  onPeriodOfBillingChange={handlePeriodOfBillingChange}
+                  shopLocation={selectedShopLocation}
+                  onShopLocationChange={setSelectedShopLocation}
                 />
 
                 <div className="summary">
-                  <p>
-                    <strong>Total Quantity:</strong> {totalQuantity}
-                  </p>
-                  <p>
-                    <strong>Total Amount:</strong> ₹{totalAmount.toLocaleString()}
-                  </p>
-                  <p>
-                    <strong>Total Commission:</strong> ₹{totalCommission.toLocaleString()}
-                  </p>
+                  <p><strong>Total Quantity:</strong> {totalQuantity}</p>
+                  <p><strong>Total Amount:</strong> ₹{totalAmount.toLocaleString()}</p>
+                  <p><strong>Total Commission:</strong> ₹{totalCommission.toLocaleString()}</p>
                 </div>
 
                 <div className="preview-wrapper">
@@ -263,21 +237,26 @@ export default function Home() {
                       selectedBuyer={selectedBuyer}
                       userBillNo={userBillNo}
                       userBillDate={userBillDate}
+                      periodOfBilling={periodOfBilling}
+                      onPeriodOfBillingChange={setPeriodOfBilling}
                     />
                   ) : (
                     <DataPreviewBuyerSide
-                      data={filteredData}
-                      commissionRate={commissionRate}
-                      commissionType={commissionType}
-                      fixedRate={fixedRate}
-                      totalTransactions={filteredData.length}
-                      totalQuantity={totalQuantity}
-                      totalAmount={totalAmount}
-                      totalCommission={totalCommission}
-                      selectedMiller={selectedMiller}
-                      selectedBuyer={selectedBuyer}
-                      userBillNo={userBillNo}
-                      userBillDate={userBillDate}
+                        data={filteredData}
+                        commissionRate={commissionRate}
+                        commissionType={commissionType}
+                        fixedRate={fixedRate}
+                        totalTransactions={filteredData.length}
+                        totalQuantity={totalQuantity}
+                        totalAmount={totalAmount}
+                        totalCommission={totalCommission}
+                        selectedMiller={selectedMiller}
+                        selectedBuyer={selectedBuyer}
+                        userBillNo={userBillNo}
+                        userBillDate={userBillDate}
+                        periodOfBilling={periodOfBilling}
+                        selectedShopLoc={selectedShopLocation}
+                        onPeriodOfBillingChange={setPeriodOfBilling} on={undefined}                      
                     />
                   )}
                 </div>
@@ -291,4 +270,3 @@ export default function Home() {
     </main>
   );
 }
-//ok

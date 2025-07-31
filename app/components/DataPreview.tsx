@@ -19,6 +19,8 @@ interface Props {
   selectedBuyer: string;
   userBillNo: string;     // ✅ New
   userBillDate: string;   // ✅ New
+  periodOfBilling: string;
+  onPeriodOfBillingChange: (value: string) => void;
 }
 
 const findQuantityField = (row: any) => {
@@ -60,7 +62,9 @@ const DataPreview: React.FC<Props> = ({
   selectedMiller,
   selectedBuyer,
   userBillNo,
-  userBillDate
+  userBillDate,
+  periodOfBilling,
+  onPeriodOfBillingChange
 }) => {
   const calculatedRows = useMemo(() => {
     return data.map((row, idx) => {
@@ -106,19 +110,27 @@ const DataPreview: React.FC<Props> = ({
     let finalY = 40;
 
     // Header
+    doc.setTextColor(0, 0, 255); // RGB for blue
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('Tejas Canvassing', pageWidth / 2, finalY, { align: 'center' });
+    doc.setTextColor(0, 0, 0); // Reset to black for the rest of the document
+
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('No. 123, 1st Floor, 4th main Road, Yeshwanthpur,APMC Yard,Bengaluru - 560022', pageWidth / 2, finalY + 20, { align: 'center' });
-    doc.text('Phone: 9916416995', pageWidth / 2, finalY + 35, { align: 'center' });
+    doc.text('Phone: 9916416995 ; PAN NO: AEBPA6445G', pageWidth / 2, finalY + 35, { align: 'center' });
     finalY += 60;
-    
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`BROKERAGE FROM : ${periodOfBilling}`, pageWidth / 2, finalY, { align: 'center' });
+    finalY += 15;
+
+
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-
 // Left-aligned Bill No
     doc.text(`Bill No: ${userBillNo || '-'}`, marginX, finalY);
 
@@ -165,11 +177,15 @@ const DataPreview: React.FC<Props> = ({
 
     finalY = (doc as any).lastAutoTable.finalY + 20;
 
+     doc.setFontSize(11);
+     doc.setFont('helvetica', 'bold');
+     doc.text('Authorized Signatory', pageWidth - marginX, finalY, { align: 'right' });
+
     // Data Table
-    autoTable(doc, {
-      startY: finalY,
-      head: [['#', 'Date', 'Miller', 'Buyer', 'Bill No', 'Quantity', 'Rate', 'Amount', 'Commission']],
-      body: calculatedRows.map(row => [
+     autoTable(doc, {
+       startY: finalY,
+        head: [['#', 'Date', 'Miller', 'Buyer', 'Bill No', 'Quantity', 'Rate', 'Amount', 'Commission']],
+        body: calculatedRows.map(row => [
         row.idx,
         row.date,
         row.miller,
@@ -179,25 +195,51 @@ const DataPreview: React.FC<Props> = ({
         row.rate,
         row.amount,
         row.commission
-      ]),
-      styles: { fontSize: 9 },
-      theme: 'grid',
-      margin: { left: marginX, right: marginX },
-      headStyles: { fillColor: [0, 123, 255], textColor: 255 }
-    });
+  ]),
+  styles: {
+    fontSize: 9,
+    halign: 'left' // Default alignment for text fields
+  },
+  theme: 'grid',
+  margin: { left: marginX, right: marginX },
+  headStyles: {
+    fillColor: [0, 123, 255],
+    textColor: 255,
+    halign: 'center' // ✅ Center-align the header text
+  },
+  columnStyles: {
+    0: { halign: 'center' }, // # (Serial number)
+    5: { halign: 'right' },  // Quantity
+    6: { halign: 'right' },  // Rate
+    7: { halign: 'right' },  // Amount
+    8: { halign: 'right' }   // Commission
+  }
+});
 
     finalY = (doc as any).lastAutoTable.finalY + 20;
 
     // Bank Info Table
-    autoTable(doc, {
-      startY: finalY,
-      head: [['Bank Name', 'Branch', 'IFSC Code', 'Account No', 'UPI']],
-      body: [['Axis Bank', 'Yeshwanthpur', 'CNRB0001234', '1234567890', '9916416995']],
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [76, 175, 80], textColor: 255 },
-      theme: 'grid',
-      margin: { left: marginX, right: marginX }
-    });
+autoTable(doc, {
+  startY: finalY,
+  head: [['Acc Name', 'A/C No', 'Bank Name', 'IFSC', 'UPI NO']],
+  body: [['TEJAS CANVASSING', '922020031617300', 'Axis Bank', 'UTIB0004052', '9916416995']],
+  styles: {
+    fontSize: 9,
+    halign: 'left' // Default: left-aligned
+  },
+  headStyles: {
+    fillColor: [76, 175, 80],
+    textColor: 255,
+    halign: 'center' // ✅ Center-align header row
+  },
+  columnStyles: {
+    1: { halign: 'right' },  // A/C No
+    3: { halign: 'center' }, // IFSC
+    4: { halign: 'right' }   // UPI NO
+  },
+  theme: 'grid',
+  margin: { left: marginX, right: marginX }
+});
 
     const safeMiller = selectedMiller && selectedMiller !== 'all'
       ? selectedMiller.replace(/[^a-z0-9]/gi, '_')
