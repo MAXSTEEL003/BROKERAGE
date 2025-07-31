@@ -17,6 +17,8 @@ interface Props {
   totalCommission: number;
   selectedMiller: string;
   selectedBuyer: string;
+  userBillNo: string;     // ✅ New
+  userBillDate: string;
 }
 
 const findQuantityField = (row: any) => {
@@ -56,7 +58,9 @@ const DataPreview: React.FC<Props> = ({
   totalAmount,
   totalCommission,
   selectedMiller,
-  selectedBuyer
+  selectedBuyer,
+  userBillNo,
+  userBillDate,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
@@ -117,10 +121,41 @@ const DataPreview: React.FC<Props> = ({
     doc.text('Tejas Canvassing', pageWidth / 2, finalY, { align: 'center' });
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.text('No. 123, 1st Floor, 4th main Road, Yeshwanthpur,APMC Yard,Bengaluru - 560022', pageWidth / 2, finalY + 20, { align: 'center' });
-    doc.text('Phone: +91-9876543210', pageWidth / 2, finalY + 35, { align: 'center' });
+    doc.text('Phone: 9916416995', pageWidth / 2, finalY + 35, { align: 'center' });
     finalY += 60;
+     
+doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+
+// Left-aligned Bill No
+    doc.text(`Bill No: ${userBillNo || '-'}`, marginX, finalY);
+
+// Right-aligned Date
+    doc.text(`Date: ${userBillDate || '-'}`, pageWidth - marginX, finalY, { align: 'right' });
+
+    finalY += 20;
+
+    // Bill Info Table
+    autoTable(doc, {
+     startY: finalY,
+     head: [['Buyer',]],
+     body: [[selectedBuyer || '-']],
+     theme: 'grid',
+     styles: {
+     fontSize: 10,
+     halign: 'center' // ✅ Center-align both head and body
+  },
+     headStyles: {
+     fillColor: [255, 193, 7],
+     textColor: 0,
+     halign: 'center' // ✅ Center-align header
+    },
+      margin: { left: marginX, right: marginX }
+     });
+
+    finalY = (doc as any).lastAutoTable.finalY + 20;
 
     // Summary
     autoTable(doc, {

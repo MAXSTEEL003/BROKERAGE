@@ -17,6 +17,8 @@ interface Props {
   totalCommission: number;
   selectedMiller: string;
   selectedBuyer: string;
+  userBillNo: string;     // ✅ New
+  userBillDate: string;   // ✅ New
 }
 
 const findQuantityField = (row: any) => {
@@ -56,7 +58,9 @@ const DataPreview: React.FC<Props> = ({
   totalAmount,
   totalCommission,
   selectedMiller,
-  selectedBuyer
+  selectedBuyer,
+  userBillNo,
+  userBillDate
 }) => {
   const calculatedRows = useMemo(() => {
     return data.map((row, idx) => {
@@ -79,7 +83,7 @@ const DataPreview: React.FC<Props> = ({
         ? '1%'
         : commissionType === 'percentage'
         ? `${(commissionRate * 100).toFixed(2)}%`
-        : `₹${fixedRate}`;
+        : `${fixedRate}`;
 
       return {
         idx: idx + 1,
@@ -101,16 +105,49 @@ const DataPreview: React.FC<Props> = ({
     const marginX = 40;
     let finalY = 40;
 
+    // Header
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Tejas Canvassing - Miller Side Report', pageWidth / 2, finalY, { align: 'center' });
+    doc.text('Tejas Canvassing', pageWidth / 2, finalY, { align: 'center' });
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('No. 123, 1st Floor, 4th main Road, Yeshwanthpur,APMC Yard,Bengaluru - 560022', pageWidth / 2, finalY + 20, { align: 'center' });
-    doc.text('Phone: +919535769154', pageWidth / 2, finalY + 35, { align: 'center' });
+    doc.text('Phone: 9916416995', pageWidth / 2, finalY + 35, { align: 'center' });
     finalY += 60;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
 
+// Left-aligned Bill No
+    doc.text(`Bill No: ${userBillNo || '-'}`, marginX, finalY);
+
+// Right-aligned Date
+    doc.text(`Date: ${userBillDate || '-'}`, pageWidth - marginX, finalY, { align: 'right' });
+
+    finalY += 20;
+
+    // Bill Info Table
+    autoTable(doc, {
+     startY: finalY,
+     head: [['Miller']],
+     body: [[selectedMiller || '-']],
+     theme: 'grid',
+     styles: {
+     fontSize: 10,
+     halign: 'center' // ✅ Center-align both head and body
+  },
+     headStyles: {
+     fillColor: [255, 193, 7],
+     textColor: 0,
+     halign: 'center' // ✅ Center-align header
+    },
+      margin: { left: marginX, right: marginX }
+     });
+
+    finalY = (doc as any).lastAutoTable.finalY + 20;
+
+    // Summary Table
     autoTable(doc, {
       startY: finalY,
       head: [['Summary', 'Value']],
@@ -128,6 +165,7 @@ const DataPreview: React.FC<Props> = ({
 
     finalY = (doc as any).lastAutoTable.finalY + 20;
 
+    // Data Table
     autoTable(doc, {
       startY: finalY,
       head: [['#', 'Date', 'Miller', 'Buyer', 'Bill No', 'Quantity', 'Rate', 'Amount', 'Commission']],
@@ -150,10 +188,11 @@ const DataPreview: React.FC<Props> = ({
 
     finalY = (doc as any).lastAutoTable.finalY + 20;
 
+    // Bank Info Table
     autoTable(doc, {
       startY: finalY,
       head: [['Bank Name', 'Branch', 'IFSC Code', 'Account No', 'UPI']],
-      body: [['Canara Bank', 'Yeshwanthpur', 'CNRB0001234', '1234567890', 'tejas@upi']],
+      body: [['Axis Bank', 'Yeshwanthpur', 'CNRB0001234', '1234567890', '9916416995']],
       styles: { fontSize: 9 },
       headStyles: { fillColor: [76, 175, 80], textColor: 255 },
       theme: 'grid',
@@ -161,8 +200,8 @@ const DataPreview: React.FC<Props> = ({
     });
 
     const safeMiller = selectedMiller && selectedMiller !== 'all'
-    ? selectedMiller.replace(/[^a-z0-9]/gi, '_')
-    : 'AllMillers';
+      ? selectedMiller.replace(/[^a-z0-9]/gi, '_')
+      : 'AllMillers';
 
     const fileName = `${safeMiller}.pdf`;
     doc.save(fileName);

@@ -18,12 +18,14 @@ export default function Home() {
   const [selectedMiller, setSelectedMiller] = useState('all');
   const [selectedBuyer, setSelectedBuyer] = useState('all');
   const [commissionRate, setCommissionRate] = useState(0.02);
-  const [commissionType, setCommissionType] = useState<'percentage' | 'fixed'>('percentage');
+  const [commissionType, setCommissionType] = useState<'percentage' | 'fixed'>('fixed');
   const [fixedRate, setFixedRate] = useState(10);
+  const [calculationSide, setCalculationSide] = useState<'miller' | 'buyer' | null>(null);
+  const [userBillNo, setUserBillNo] = useState('');
+  const [userBillDate, setUserBillDate] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [calculationSide, setCalculationSide] = useState<'miller' | 'buyer'>('miller');
 
   useEffect(() => {
     setIsClient(true);
@@ -32,16 +34,10 @@ export default function Home() {
   const handleDataImport = async (data: any[]) => {
     try {
       setLoading(true);
-      if (!Array.isArray(data)) {
-        setError('Invalid data format');
-        return;
-      }
-
       const normalized = data.map(row => ({
         ...row,
         'BUYER NAME': row['BUYER NAMER'] || row['BUYER NAME'],
       }));
-
       setExcelData(normalized);
 
       const uniqueMillers = Array.from(new Set(data.map(row => row['MILLER NAME'] || ''))).filter(Boolean);
@@ -88,16 +84,14 @@ export default function Home() {
     return 0;
   };
 
-  const calculateTotalQuantity = (data: any[]) => {
-    return data.reduce((total, row) => total + findQuantityField(row), 0);
-  };
+  const calculateTotalQuantity = (data: any[]) =>
+    data.reduce((total, row) => total + findQuantityField(row), 0);
 
-  const calculateTotalAmount = (data: any[]) => {
-    return data.reduce((total, row) => total + findAmountField(row), 0);
-  };
+  const calculateTotalAmount = (data: any[]) =>
+    data.reduce((total, row) => total + findAmountField(row), 0);
 
-  const calculateTotalCommission = (data: any[]) => {
-    return data.reduce((total, row) => {
+  const calculateTotalCommission = (data: any[]) =>
+    data.reduce((total, row) => {
       const qty = findQuantityField(row);
       const amt = findAmountField(row);
       const miller = (row['MILLER NAME'] || '').toLowerCase();
@@ -113,7 +107,6 @@ export default function Home() {
 
       return total + commission;
     }, 0);
-  };
 
   useEffect(() => {
     let filteredMillers: string[] = [];
@@ -143,7 +136,7 @@ export default function Home() {
                   .filter(Boolean)
               )
             );
-    } else {
+    } else if (calculationSide === 'buyer') {
       filteredBuyers =
         selectedMiller === 'all'
           ? Array.from(new Set(excelData.map(row => row['BUYER NAME']).filter(Boolean)))
@@ -214,71 +207,83 @@ export default function Home() {
               >
                 Buyer Side
               </button>
+              <button
+                onClick={() => setCalculationSide('miller')}
+                className={calculationSide === 'miller' ? 'active' : ''}
+              ></button>
             </div>
+
+            {error && <div className="error-alert">{error}</div>}
+
+            {excelData.length > 0 && (
+              <>
+                <FilterControls
+                  millers={millers}
+                  buyers={filteredBuyers}
+                  selectedMiller={selectedMiller}
+                  selectedBuyer={selectedBuyer}
+                  commissionRate={commissionRate}
+                  commissionType={commissionType}
+                  fixedRate={fixedRate}
+                  onMillerChange={handleMillerChange}
+                  onBuyerChange={setSelectedBuyer}
+                  onCommissionRateChange={setCommissionRate}
+                  onCommissionTypeChange={setCommissionType}
+                  onFixedRateChange={setFixedRate}
+                  onBillNumberChange={setUserBillNo}
+                  onBillDateChange={setUserBillDate}
+                  billNumber={userBillNo}
+                  billDate={userBillDate}
+                />
+
+                <div className="summary">
+                  <p>
+                    <strong>Total Quantity:</strong> {totalQuantity}
+                  </p>
+                  <p>
+                    <strong>Total Amount:</strong> ₹{totalAmount.toLocaleString()}
+                  </p>
+                  <p>
+                    <strong>Total Commission:</strong> ₹{totalCommission.toLocaleString()}
+                  </p>
+                </div>
+
+                <div className="preview-wrapper">
+                  {calculationSide === 'miller' ? (
+                    <DataPreview
+                      data={filteredData}
+                      commissionRate={commissionRate}
+                      commissionType={commissionType}
+                      fixedRate={fixedRate}
+                      totalTransactions={filteredData.length}
+                      totalQuantity={totalQuantity}
+                      totalAmount={totalAmount}
+                      totalCommission={totalCommission}
+                      selectedMiller={selectedMiller}
+                      selectedBuyer={selectedBuyer}
+                      userBillNo={userBillNo}
+                      userBillDate={userBillDate}
+                    />
+                  ) : (
+                    <DataPreviewBuyerSide
+                      data={filteredData}
+                      commissionRate={commissionRate}
+                      commissionType={commissionType}
+                      fixedRate={fixedRate}
+                      totalTransactions={filteredData.length}
+                      totalQuantity={totalQuantity}
+                      totalAmount={totalAmount}
+                      totalCommission={totalCommission}
+                      selectedMiller={selectedMiller}
+                      selectedBuyer={selectedBuyer}
+                      userBillNo={userBillNo}
+                      userBillDate={userBillDate}
+                    />
+                  )}
+                </div>
+              </>
+            )}
           </div>
-
-          {error && <div className="error-alert">{error}</div>}
-
-          {excelData.length > 0 && (
-            <>
-              <FilterControls
-                millers={millers}
-                buyers={filteredBuyers}
-                selectedMiller={selectedMiller}
-                selectedBuyer={selectedBuyer}
-                commissionRate={commissionRate}
-                commissionType={commissionType}
-                fixedRate={fixedRate}
-                onMillerChange={handleMillerChange}
-                onBuyerChange={setSelectedBuyer}
-                onCommissionRateChange={setCommissionRate}
-                onCommissionTypeChange={setCommissionType}
-                onFixedRateChange={setFixedRate}
-              />
-
-              <div className="summary">
-                <p>
-                  <strong>Total Quantity:</strong> {totalQuantity}
-                </p>
-                <p>
-                  <strong>Total Amount:</strong> ₹{totalAmount.toLocaleString()}
-                </p>
-                <p>
-                  <strong>Total Commission:</strong> ₹{totalCommission.toLocaleString()}
-                </p>
-              </div>
-
-              <div className="preview-wrapper">
-                {calculationSide === 'miller' ? (
-                  <DataPreview
-                    data={filteredData}
-                    commissionRate={commissionRate}
-                    commissionType={commissionType}
-                    fixedRate={fixedRate}
-                    totalTransactions={filteredData.length}
-                    totalQuantity={totalQuantity}
-                    totalAmount={totalAmount}
-                    totalCommission={totalCommission}
-                    selectedMiller={selectedMiller}
-                    selectedBuyer={selectedBuyer}
-                  />
-                ) : (
-                  <DataPreviewBuyerSide
-                    data={filteredData}
-                    commissionRate={commissionRate}
-                    commissionType={commissionType}
-                    fixedRate={fixedRate}
-                    totalTransactions={filteredData.length}
-                    totalQuantity={totalQuantity}
-                    totalAmount={totalAmount}
-                    totalCommission={totalCommission}
-                    selectedMiller={selectedMiller}
-                    selectedBuyer={selectedBuyer}
-                  />
-                )}
-              </div>
-            </>
-          )}
         </>
       ) : (
         <div>Loading...</div>
@@ -286,3 +291,4 @@ export default function Home() {
     </main>
   );
 }
+//ok
