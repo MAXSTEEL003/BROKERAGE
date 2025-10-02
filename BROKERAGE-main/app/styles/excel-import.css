@@ -1,0 +1,139 @@
+/* Container and Base */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #334155;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(to right, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.header p {
+  color: #94a3b8;
+  font-size: 1rem;
+}
+
+/* Card */
+.card {
+  background: #1e293b;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #3b82f6;
+}
+
+/* Toggle Buttons */
+.toggle-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.toggle-buttons button {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: #334155;
+  color: #f8fafc;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.toggle-buttons button.active {
+  background: linear-gradient(to right, #3b82f6, #8b5cf6);
+  font-weight: bold;
+}
+
+.toggle-buttons button:hover {
+  background: #475569;
+}
+
+/* Summary Section */
+.summary {
+  background: #1e293b;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: #f8fafc;
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.summary p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.summary strong {
+  color: #8b5cf6;
+}
+
+/* Error Alert */
+.error-alert {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Loading */
+.loading {
+  margin-top: 1rem;
+  text-align: center;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+/* Preview Wrapper */
+.preview-wrapper {
+  margin-top: 2rem;
+}
+
+/* Excel Import */
+.excel-import {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.excel-import input[type="file"] {
+  background-color: #1e293b;
+  color: #f8fafc;
+  padding: 0.75rem 1rem;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.3s, background-color 0.3s;
+}
+
+.excel-import input[type="file"]:hover {
+  background-color: #2d3748;
+  border-color: #3b82f6;
+}
