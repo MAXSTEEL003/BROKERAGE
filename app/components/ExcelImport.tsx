@@ -19,8 +19,9 @@ const HEADER_MAP: Record<string, string> = {
   'VALUE': 'AMOUNT',
   'RATE': 'RATE',
   'DATE': 'DATE',
-  'PLACE': 'PLACE',
+  'PLACE': 'SHOP LOC',
   'SHOP LOC': 'SHOP LOC',
+  'BUYER NAMER': 'BUYER', // handle common typo
   'BUYER': 'BUYER',
   'BUYER NAME': 'BUYER'
 };
@@ -48,21 +49,50 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ onDataImport, onMappingExtrac
           Object.keys(row).forEach(key => {
             const cleaned = key.trim().toUpperCase();
             const mapped = HEADER_MAP[cleaned] || cleaned;
+            // Preserve first non-empty SHOP LOC / PLACE encountered; ignore subsequent duplicates
+            if (mapped === 'SHOP LOC' && normalizedRow['SHOP LOC']) {
+              if (!normalizedRow['SHOP LOC'] && row[key]) {
+                normalizedRow['SHOP LOC'] = row[key];
+              }
+              return; // skip overwriting
+            }
             normalizedRow[mapped] = row[key];
           });
           return normalizedRow;
         });
 
-        // Extract buyer => shop loc mapping
+        // Utilities to sanitize strings (collapse whitespace, trim, remove non-breaking spaces)
+        const clean = (val: any) =>
+          val === undefined || val === null
+            ? ''
+            : val
+                .toString()
+                .replace(/\u00A0/g, ' ') // non-breaking space to normal space
+                .replace(/\s+/g, ' ') // collapse internal whitespace
+                .trim();
+
+        // Extract buyer => shop loc mapping (PLACE also mapped to SHOP LOC)
         const buyerShopLocMap: { [buyer: string]: string } = {};
         normalizedData.forEach(row => {
-          const buyer = row['BUYER']?.trim();
-          const shopLoc = row['SHOP LOC']?.trim();
+          const rawBuyer = row['BUYER'] || row['BUYER NAMER'] || row['BUYER NAME'];
+          const rawLoc = row['SHOP LOC'];
+          const buyer = clean(rawBuyer);
+          const shopLoc = clean(rawLoc);
           if (buyer && shopLoc && !buyerShopLocMap[buyer]) {
             buyerShopLocMap[buyer] = shopLoc;
-            console.log('Mapped:', buyer, '->', shopLoc);
           }
         });
+
+        // Rich debug output
+        const entries = Object.entries(buyerShopLocMap);
+        console.group('[Buyer->ShopLoc Mapping]');
+        console.log('Total buyers with mapping:', entries.length);
+        console.log('Sample (first up to 10):', entries.slice(0, 10));
+        if (entries.length === 0) {
+          console.warn('No buyer -> shop loc pairs detected. Check column headers (expected: BUYER / BUYER NAMER / BUYER NAME and PLACE / SHOP LOC).');
+          console.log('First row keys sample:', Object.keys(normalizedData[0] || {}));
+        }
+        console.groupEnd();
 
         setError('');
         onDataImport(normalizedData);
@@ -82,6 +112,7 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ onDataImport, onMappingExtrac
         ref={fileInputRef}
         type="file"
         accept=".xlsx,.xls"
+        onClick={e => { (e.target as HTMLInputElement).value = ''; }}
         onChange={handleFileUpload}
       />
       {error && <div className="error-alert">{error}</div>}

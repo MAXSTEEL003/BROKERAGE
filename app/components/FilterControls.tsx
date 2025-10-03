@@ -21,6 +21,7 @@ interface Props {
   onPeriodOfBillingChange: (value: string) => void;
   shopLocation: string;
   onShopLocationChange: (value: string) => void;
+  autoMappedShopLocation?: string; // new optional prop for auto mapping
 }
 
 const FilterControls: React.FC<Props> = ({
@@ -43,7 +44,8 @@ const FilterControls: React.FC<Props> = ({
   periodOfBilling,
   onPeriodOfBillingChange,
   shopLocation,
-  onShopLocationChange
+  onShopLocationChange,
+  autoMappedShopLocation
 }) => {
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -60,7 +62,7 @@ const FilterControls: React.FC<Props> = ({
     localStorage.getItem('fromMonth') || 'June'
   );
   const [fromYear, setFromYear] = useState<string>(() =>
-    localStorage.getItem('fromYear') || '2024'
+    localStorage.getItem('fromYear') || '2025'
   );
   const [toMonth, setToMonth] = useState<string>(() =>
     localStorage.getItem('toMonth') || 'July'
@@ -120,6 +122,7 @@ const FilterControls: React.FC<Props> = ({
 'MUNIREEDY PALYA',
 'DASANAPURA',
 'HOSAKOTTE',
+'TANJORE'
   ];
 
   useEffect(() => {
@@ -147,7 +150,7 @@ const FilterControls: React.FC<Props> = ({
 
         <label>
           Select Buyer:
-          <select value={selectedBuyer} onChange={e => onBuyerChange(e.target.value)}>
+          <select value={selectedBuyer} onChange={e => onBuyerChange(e.target.value.trim())}>
             <option value="all">All</option>
             {[...buyers].sort().map(buyer => (
               <option key={buyer} value={buyer}>{buyer}</option>
@@ -157,12 +160,27 @@ const FilterControls: React.FC<Props> = ({
 
         <label>
           SHOP LOC:
-          <select value={shopLocation} onChange={e => onShopLocationChange(e.target.value)}>
-            <option value="">Select</option>
-            {shopLocs.sort().map(loc => (
-              <option key={loc} value={loc}>{loc}</option>
-            ))}
-          </select>
+          {autoMappedShopLocation ? (
+            <input
+              type="text"
+              value={autoMappedShopLocation}
+              readOnly
+              style={{ backgroundColor: '#f3f3f3', fontWeight: 600 }}
+              title="Auto-mapped from selected buyer"
+            />
+          ) : (
+            <select value={shopLocation} onChange={e => onShopLocationChange(e.target.value)}>
+              <option value="">Select</option>
+              {shopLocs.sort().map(loc => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
+            </select>
+          )}
+          {!autoMappedShopLocation && selectedBuyer !== 'all' && (
+            <small style={{ display: 'block', color: '#a00', marginTop: 4 }}>
+              No mapping found for this buyer (enter manually or verify Excel columns BUYER / PLACE / SHOP LOC)
+            </small>
+          )}
         </label>
 
         <label>
@@ -227,11 +245,38 @@ const FilterControls: React.FC<Props> = ({
 
         <label>
           Bill No:
-          <input
-            type="text"
-            value={billNumber}
-            onChange={e => onBillNumberChange(e.target.value)}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              type="button"
+              onClick={() => {
+                const n = parseInt(billNumber, 10);
+                const next = isNaN(n) ? 0 : Math.max(0, n - 1);
+                onBillNumberChange(String(next));
+              }}
+              style={{ padding: '2px 8px' }}
+              disabled={billNumber !== '' && !isNaN(parseInt(billNumber,10)) && parseInt(billNumber,10) <= 0}
+              title="Decrease bill number"
+            >-
+            </button>
+            <input
+              type="text"
+              value={billNumber}
+              onChange={e => onBillNumberChange(e.target.value)}
+              style={{ width: 90, textAlign: 'center' }}
+              placeholder="0"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const n = parseInt(billNumber, 10);
+                const base = isNaN(n) ? 0 : n;
+                onBillNumberChange(String(base + 1));
+              }}
+              style={{ padding: '2px 8px' }}
+              title="Increase bill number"
+            >+
+            </button>
+          </div>
         </label>
 
         <label>

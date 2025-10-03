@@ -124,7 +124,7 @@ const DataPreviewBuyerSide: React.FC<Props> = ({
 doc.setTextColor(0, 0, 255);
 doc.setFontSize(25);
 doc.setFont('helvetica', 'bold');
-doc.text('Tejas Canvassing', pageWidth / 2, finalY, { align: 'center' });
+doc.text('Thejas Canvassing', pageWidth / 2, finalY, { align: 'center' });
 
 doc.setTextColor(0, 0, 0);
 doc.setFontSize(10);
@@ -139,7 +139,7 @@ doc.text(
 );
 
 doc.text(
-  'Phone: 9916416995 ; PAN NO: AEBPA6445G',
+  'Phone: 9916416995 ; PAN NO: AEBPA6445G; GST NO: 29AEBPA6445G2Z0',
   pageWidth / 2,
   finalY + 45,
   { align: 'center' }
@@ -245,10 +245,15 @@ autoTable(doc, {
 
 
     finalY = (doc as any).lastAutoTable.finalY + 20;
+// Add heading above Bank Details table
+doc.setFontSize(12);
+doc.setFont('helvetica', 'bold');
+doc.text('Bank Details', marginX, finalY);
+finalY += 15;
 autoTable(doc, {
   startY: finalY,
   head: [['Acc Name', 'A/C No', 'Bank Name', 'IFSC', 'UPI NO']],
-  body: [['TEJAS CANVASSING', '922020031617300', 'Axis Bank', 'UTIB0004052', '9916416995']],
+  body: [['THEJAS CANVASSING', '50200113540016', 'HDFC Bank', 'HDFC0001047', '9916416995']],
   styles: {
     fontSize: 9,
     halign: 'left' // Default: left-aligned
@@ -259,17 +264,18 @@ autoTable(doc, {
     halign: 'center' // ✅ Center-align header row
   },
   columnStyles: {
-    0: { halign: 'center' },  // A/C No
-    1: { halign: 'center' }, // IFSC
+    0: { halign: 'center' }, 
+    1: { halign: 'center' }, 
     2: { halign: 'center' },
-    3: { halign: 'center' } ,
+    3: { halign: 'center' },
     4: { halign: 'center' }  
   },
   theme: 'grid',
   margin: { left: marginX, right: marginX }
 });
 
-    finalY = (doc as any).lastAutoTable.finalY + 40;
+  // Increase spacing before the signature area
+  finalY = (doc as any).lastAutoTable.finalY + 60;
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text('Authorized Signatory', pageWidth - marginX, finalY, { align: 'right' });

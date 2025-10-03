@@ -19,7 +19,7 @@ export default function Home() {
   const [selectedBuyer, setSelectedBuyer] = useState('all');
   const [commissionRate, setCommissionRate] = useState(0.02);
   const [commissionType, setCommissionType] = useState<'percentage' | 'fixed'>('fixed');
-  const [fixedRate, setFixedRate] = useState(10);
+  const [fixedRate, setFixedRate] = useState(11); // default fixed rate updated to 11
   const [calculationSide, setCalculationSide] = useState<'miller' | 'buyer' | null>(null);
   const [userBillNo, setUserBillNo] = useState('');
   const [userBillDate, setUserBillDate] = useState('');
@@ -29,6 +29,17 @@ export default function Home() {
   const [periodOfBilling, setPeriodOfBilling] = useState('APR 2025 to JULY 2025');
   const [buyerShopLocMap, setBuyerShopLocMap] = useState<{ [key: string]: string }>({});
   const [selectedShopLocation, setSelectedShopLocation] = useState('');
+  // Track if user explicitly chose a buyer to suppress auto-selection overrides
+  const [buyerManuallyChosen, setBuyerManuallyChosen] = useState(false);
+
+  // Helper to normalize buyer names consistently across dataset & selection
+  const normalizeBuyer = (val: string) =>
+    (val || '')
+      .toString()
+      .replace(/\u00A0/g, ' ') // NBSP -> space
+      .replace(/\s+/g, ' ') // collapse whitespace
+      .trim()
+      .toLowerCase();
 
   const handlePeriodOfBillingChange = (value: string) => {
     setPeriodOfBilling(value);
@@ -41,33 +52,67 @@ export default function Home() {
   const handleDataImport = async (data: any[]) => {
     try {
       setLoading(true);
+      // Reset selections & previous mappings for a clean import cycle
+      setSelectedBuyer('all');
+      setSelectedShopLocation('');
+      setBuyerShopLocMap({});
 
+      // Ensure a consistent 'BUYER NAME' field is present even if Excel header was 'BUYER'
       const normalized = data.map(row => {
-        const buyerName = row['BUYER NAMER'] || row['BUYER NAME'] || '';
+        const rawBuyer = row['BUYER NAMER'] || row['BUYER NAME'] || row['BUYER'] || '';
+        const cleanedDisplay = rawBuyer
+          .toString()
+          .replace(/\u00A0/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
         return {
           ...row,
-          'BUYER NAME': buyerName,
+          'BUYER NAME': cleanedDisplay,
+          '__BUYER_NORM__': normalizeBuyer(cleanedDisplay)
         };
       });
 
+      const clean = (val: any) =>
+        val === undefined || val === null
+          ? ''
+          : val
+              .toString()
+              .replace(/\u00A0/g, ' ') // non-breaking space
+              .replace(/\s+/g, ' ') // collapse whitespace
+              .trim();
+
       const shopLocMap: Record<string, string> = {};
       normalized.forEach((row: any) => {
-        const buyer = row['BUYER NAME']?.toString().trim().toLowerCase();
-        const shopLoc = row['SHOP LOC']?.toString().trim();
+        const buyerRaw = row['BUYER NAME'];
+        const buyer = clean(buyerRaw);
+        const shopLoc = clean(row['SHOP LOC']);
         if (buyer && shopLoc && !shopLocMap[buyer]) {
           shopLocMap[buyer] = shopLoc;
         }
       });
 
-      setBuyerShopLocMap(shopLocMap);
+      setBuyerShopLocMap(shopLocMap); // Overwrite with consistent-casing mapping
+      console.log('[page.tsx] Stored buyerShopLocMap size:', Object.keys(shopLocMap).length);
+  // If only one buyer present, optionally auto-select (left commented)
+  // if (uniqueBuyers.length === 1) setSelectedBuyer(uniqueBuyers[0]);
       setExcelData(normalized);
 
       const uniqueMillers = Array.from(new Set(normalized.map(row => row['MILLER NAME'] || ''))).filter(Boolean);
-      const uniqueBuyers = Array.from(new Set(normalized.map(row => row['BUYER NAME'] || ''))).filter(Boolean);
+      const uniqueBuyers = Array.from(
+        new Set(
+          normalized
+            .map(row => (row['BUYER NAME'] || '').toString().replace(/\u00A0/g,' ').replace(/\s+/g,' ').trim())
+            .filter(Boolean)
+        )
+      );
 
       setMillers(uniqueMillers);
       setBuyers(uniqueBuyers);
       setFilteredBuyers(uniqueBuyers);
+      // Auto-select if there's only one buyer
+      if (uniqueBuyers.length === 1) {
+        setSelectedBuyer(uniqueBuyers[0]);
+      }
       setError('');
     } catch (err) {
       console.error('Import Error:', err);
@@ -80,12 +125,18 @@ export default function Home() {
   const handleMillerChange = (miller: string) => {
     setSelectedMiller(miller);
     setSelectedBuyer('all');
+    setBuyerManuallyChosen(false);
+  };
+
+  const handleBuyerChange = (buyer: string) => {
+    setSelectedBuyer(buyer);
+    setBuyerManuallyChosen(buyer !== 'all');
   };
 
   const getFilteredData = () => {
     return excelData.filter(row => {
       const millerMatch = selectedMiller === 'all' || row['MILLER NAME'] === selectedMiller;
-      const buyerMatch = selectedBuyer === 'all' || row['BUYER NAME'] === selectedBuyer;
+      const buyerMatch = selectedBuyer === 'all' || normalizeBuyer(row['BUYER NAME']) === normalizeBuyer(selectedBuyer);
       return millerMatch && buyerMatch;
     });
   };
@@ -131,39 +182,110 @@ export default function Home() {
     }, 0);
 
   useEffect(() => {
-    let filteredMillers: string[] = [];
-    let filteredBuyers: string[] = [];
+    let nextMillers: string[] = [];
+    let nextBuyers: string[] = [];
+
+    if (!excelData.length) {
+      setMillers([]);
+      setFilteredBuyers([]);
+      return;
+    }
+
+    const allMillers = Array.from(new Set(excelData.map(r => r['MILLER NAME']).filter(Boolean)));
+  const allBuyers = Array.from(new Set(excelData.map(r => r['BUYER NAME']).filter(Boolean)));
 
     if (calculationSide === 'miller') {
-      filteredMillers = selectedBuyer === 'all'
-        ? Array.from(new Set(excelData.map(row => row['MILLER NAME']).filter(Boolean)))
-        : Array.from(new Set(excelData.filter(row => row['BUYER NAME'] === selectedBuyer).map(row => row['MILLER NAME']).filter(Boolean)));
+      nextMillers = selectedBuyer === 'all'
+        ? allMillers
+        : Array.from(new Set(excelData.filter(r => r['BUYER NAME'] === selectedBuyer).map(r => r['MILLER NAME']).filter(Boolean)));
 
-      filteredBuyers = selectedMiller === 'all'
-        ? Array.from(new Set(excelData.map(row => row['BUYER NAME']).filter(Boolean)))
-        : Array.from(new Set(excelData.filter(row => row['MILLER NAME'] === selectedMiller).map(row => row['BUYER NAME']).filter(Boolean)));
+      nextBuyers = selectedMiller === 'all'
+        ? allBuyers
+        : Array.from(new Set(excelData.filter(r => r['MILLER NAME'] === selectedMiller).map(r => r['BUYER NAME']).filter(Boolean)));
     } else if (calculationSide === 'buyer') {
-      filteredBuyers = selectedMiller === 'all'
-        ? Array.from(new Set(excelData.map(row => row['BUYER NAME']).filter(Boolean)))
-        : Array.from(new Set(excelData.filter(row => row['MILLER NAME'] === selectedMiller).map(row => row['BUYER NAME']).filter(Boolean)));
+      nextBuyers = selectedMiller === 'all'
+        ? allBuyers
+        : Array.from(new Set(excelData.filter(r => r['MILLER NAME'] === selectedMiller).map(r => r['BUYER NAME']).filter(Boolean)));
 
-      filteredMillers = selectedBuyer === 'all'
-        ? Array.from(new Set(excelData.map(row => row['MILLER NAME']).filter(Boolean)))
-        : Array.from(new Set(excelData.filter(row => row['BUYER NAME'] === selectedBuyer).map(row => row['MILLER NAME']).filter(Boolean)));
+      nextMillers = selectedBuyer === 'all'
+        ? allMillers
+        : Array.from(new Set(excelData.filter(r => r['BUYER NAME'] === selectedBuyer).map(r => r['MILLER NAME']).filter(Boolean)));
+    } else {
+      nextMillers = allMillers;
+      nextBuyers = allBuyers;
     }
 
-    setMillers(filteredMillers);
-    setFilteredBuyers(filteredBuyers);
+    // If user manually selected a buyer, ensure it stays in the list even if filtering would drop it
+    if (buyerManuallyChosen && selectedBuyer !== 'all' && !nextBuyers.includes(selectedBuyer)) {
+      nextBuyers = [...nextBuyers, selectedBuyer];
+    }
 
-    if (selectedMiller !== 'all' && !filteredMillers.includes(selectedMiller)) {
-      setSelectedMiller('all');
+    setMillers(nextMillers);
+    setFilteredBuyers(nextBuyers);
+
+    // Correct miller selection
+    if (selectedMiller !== 'all' && !nextMillers.includes(selectedMiller)) {
+      if (nextMillers.length === 1) {
+        setSelectedMiller(nextMillers[0]);
+        console.log('[AutoSelect] Single miller after reset:', nextMillers[0]);
+      } else {
+        setSelectedMiller('all');
+      }
     }
-    if (selectedBuyer !== 'all' && !filteredBuyers.includes(selectedBuyer)) {
-      setSelectedBuyer('all');
+
+    // Buyer auto-selection logic (only when not manually chosen)
+    if (!buyerManuallyChosen) {
+      if (selectedBuyer === 'all' && nextBuyers.length === 1) {
+        setSelectedBuyer(nextBuyers[0]);
+        console.log('[AutoSelect] Single buyer (was all):', nextBuyers[0]);
+        return;
+      }
+      if (selectedBuyer !== 'all' && !nextBuyers.includes(selectedBuyer)) {
+        if (nextBuyers.length === 1) {
+          setSelectedBuyer(nextBuyers[0]);
+          console.log('[AutoSelect] Corrected buyer to single option:', nextBuyers[0]);
+        } else if (nextBuyers.length > 0) {
+          setSelectedBuyer(nextBuyers[0]);
+          console.log('[AutoSelect] Defaulted buyer to first option:', nextBuyers[0]);
+        } else {
+          setSelectedBuyer('all');
+        }
+      }
+    } else {
+      // If manually chosen buyer truly disappears from entire dataset, reset.
+      const selNorm = normalizeBuyer(selectedBuyer);
+      const stillExists = excelData.some(r => normalizeBuyer(r['BUYER NAME']) === selNorm);
+      if (!stillExists) {
+        console.log('[AutoSelect] Manually selected buyer removed from data, resetting to all');
+        setSelectedBuyer('all');
+        setBuyerManuallyChosen(false);
+      }
     }
-  }, [selectedMiller, selectedBuyer, excelData, calculationSide]);
+  }, [selectedMiller, selectedBuyer, excelData, calculationSide, buyerManuallyChosen]);
 
   const filteredData = useMemo(() => getFilteredData(), [excelData, selectedMiller, selectedBuyer]);
+  useEffect(() => {
+    console.log('[FilterDebug] SelectedBuyer:', selectedBuyer, 'SelectedMiller:', selectedMiller, 'Filtered rows:', filteredData.length);
+  }, [filteredData, selectedBuyer, selectedMiller]);
+
+  // When buyer changes, auto-select its mapped shop location (if available)
+  useEffect(() => {
+    const key = selectedBuyer?.trim();
+    if (key && key !== 'all') {
+      let loc = buyerShopLocMap[key];
+      if (!loc) {
+        // Case-insensitive fallback
+        const foundKey = Object.keys(buyerShopLocMap).find(k => k.toLowerCase() === key.toLowerCase());
+        if (foundKey) loc = buyerShopLocMap[foundKey];
+      }
+      console.log('[Buyer selection effect] buyer:', key, 'resolved location:', loc);
+      if (loc && loc !== selectedShopLocation) {
+        setSelectedShopLocation(loc);
+      }
+    }
+  }, [selectedBuyer, buyerShopLocMap]);
+
+  // When user manually changes shop location, optionally (future) could filter buyers; placeholder for extensibility.
   const totalQuantity = useMemo(() => calculateTotalQuantity(filteredData), [filteredData]);
   const totalAmount = useMemo(() => calculateTotalAmount(filteredData), [filteredData]);
   const totalCommission = useMemo(() => calculateTotalCommission(filteredData), [filteredData, commissionRate, commissionType, fixedRate]);
@@ -202,7 +324,7 @@ export default function Home() {
                   commissionType={commissionType}
                   fixedRate={fixedRate}
                   onMillerChange={handleMillerChange}
-                  onBuyerChange={setSelectedBuyer}
+                  onBuyerChange={handleBuyerChange}
                   onCommissionRateChange={setCommissionRate}
                   onCommissionTypeChange={setCommissionType}
                   onFixedRateChange={setFixedRate}
@@ -214,6 +336,7 @@ export default function Home() {
                   onPeriodOfBillingChange={handlePeriodOfBillingChange}
                   shopLocation={selectedShopLocation}
                   onShopLocationChange={setSelectedShopLocation}
+                  autoMappedShopLocation={selectedBuyer !== 'all' ? buyerShopLocMap[selectedBuyer.trim()] : undefined}
                 />
 
                 <div className="summary">
