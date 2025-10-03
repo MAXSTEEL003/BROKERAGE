@@ -108,13 +108,24 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ onDataImport, onMappingExtrac
 
   return (
     <div className="excel-import">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx,.xls"
-        onClick={e => { (e.target as HTMLInputElement).value = ''; }}
-        onChange={handleFileUpload}
-      />
+      <label className="file-input-wrapper">
+        <button
+          type="button"
+          className="file-input-button btn btn-primary"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <span>Import Excel</span>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          style={{ display: 'none' }}
+          onClick={e => { (e.target as HTMLInputElement).value = ''; }}
+          onChange={handleFileUpload}
+        />
+      </label>
+      <div className="file-drop-text">Supported formats: .xlsx, .xls</div>
       {error && <div className="error-alert">{error}</div>}
     </div>
   );
