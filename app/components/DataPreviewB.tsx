@@ -124,7 +124,7 @@ const DataPreviewBuyerSide: React.FC<Props> = ({
 doc.setTextColor(0, 0, 255);
 doc.setFontSize(25);
 doc.setFont('helvetica', 'bold');
-doc.text('Thejas Canvassing', pageWidth / 2, finalY, { align: 'center' });
+doc.text('Thejas Canvasing', pageWidth / 2, finalY, { align: 'center' });
 
 doc.setTextColor(0, 0, 0);
 doc.setFontSize(10);
@@ -253,7 +253,7 @@ finalY += 15;
 autoTable(doc, {
   startY: finalY,
   head: [['Acc Name', 'A/C No', 'Bank Name', 'IFSC', 'UPI NO']],
-  body: [['THEJAS CANVASSING', '50200113540016', 'HDFC Bank', 'HDFC0001047', '9916416995']],
+  body: [['THEJAS CANVASING', '50200113540016', 'HDFC Bank', 'HDFC0001047', '9916416995']],
   styles: {
     fontSize: 9,
     halign: 'left' // Default: left-aligned
