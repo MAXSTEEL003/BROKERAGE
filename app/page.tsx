@@ -19,8 +19,8 @@ export default function Home() {
   const [selectedBuyer, setSelectedBuyer] = useState('all');
   const [commissionRate, setCommissionRate] = useState(0.02);
   const [commissionType, setCommissionType] = useState<'percentage' | 'fixed'>('fixed');
-  const [fixedRate, setFixedRate] = useState(11); // default fixed rate updated to 11
-  const [calculationSide, setCalculationSide] = useState<'miller' | 'buyer' | null>(null);
+  const [fixedRate, setFixedRate] = useState(11);
+  const [calculationSide, setCalculationSide] = useState<'miller' | 'buyer'>('buyer');
   const [userBillNo, setUserBillNo] = useState('');
   const [userBillDate, setUserBillDate] = useState('');
   const [isClient, setIsClient] = useState(false);
@@ -31,6 +31,26 @@ export default function Home() {
   const [selectedShopLocation, setSelectedShopLocation] = useState('');
   // Track if user explicitly chose a buyer to suppress auto-selection overrides
   const [buyerManuallyChosen, setBuyerManuallyChosen] = useState(false);
+  // Company name — editable, persisted to localStorage
+  const [companyName, setCompanyName] = useState('Thejas Canvasing');
+
+  // Bank details — editable, persisted to localStorage
+  const [bankDetails, setBankDetails] = useState({
+    accName: 'THEJAS CANVASING',
+    accNo: '50200113540016',
+    bankName: 'HDFC Bank',
+    ifsc: 'HDFC0001047',
+    upi: '9916416995',
+  });
+
+  // Date range filter — driven by FilterControls month/year selects
+  const [fromDate, setFromDate] = useState<Date | null>(null);
+  const [toDate, setToDate] = useState<Date | null>(null);
+
+  const handleDateRangeChange = (from: Date, to: Date) => {
+    setFromDate(from);
+    setToDate(to);
+  };
 
   // Helper to normalize buyer names consistently across dataset & selection
   const normalizeBuyer = (val: string) =>
@@ -47,7 +67,21 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
+    const storedName = localStorage.getItem('companyName');
+    if (storedName) setCompanyName(storedName);
+    const storedBank = localStorage.getItem('bankDetails');
+    if (storedBank) {
+      try { setBankDetails(JSON.parse(storedBank)); } catch { }
+    }
   }, []);
+
+  useEffect(() => {
+    if (isClient) localStorage.setItem('companyName', companyName);
+  }, [companyName, isClient]);
+
+  useEffect(() => {
+    if (isClient) localStorage.setItem('bankDetails', JSON.stringify(bankDetails));
+  }, [bankDetails, isClient]);
 
   const handleDataImport = async (data: any[]) => {
     try {
@@ -76,10 +110,10 @@ export default function Home() {
         val === undefined || val === null
           ? ''
           : val
-              .toString()
-              .replace(/\u00A0/g, ' ') // non-breaking space
-              .replace(/\s+/g, ' ') // collapse whitespace
-              .trim();
+            .toString()
+            .replace(/\u00A0/g, ' ') // non-breaking space
+            .replace(/\s+/g, ' ') // collapse whitespace
+            .trim();
 
       const shopLocMap: Record<string, string> = {};
       normalized.forEach((row: any) => {
@@ -92,16 +126,15 @@ export default function Home() {
       });
 
       setBuyerShopLocMap(shopLocMap); // Overwrite with consistent-casing mapping
-      console.log('[page.tsx] Stored buyerShopLocMap size:', Object.keys(shopLocMap).length);
-  // If only one buyer present, optionally auto-select (left commented)
-  // if (uniqueBuyers.length === 1) setSelectedBuyer(uniqueBuyers[0]);
+      // If only one buyer present, optionally auto-select (left commented)
+      // if (uniqueBuyers.length === 1) setSelectedBuyer(uniqueBuyers[0]);
       setExcelData(normalized);
 
       const uniqueMillers = Array.from(new Set(normalized.map(row => row['MILLER NAME'] || ''))).filter(Boolean);
       const uniqueBuyers = Array.from(
         new Set(
           normalized
-            .map(row => (row['BUYER NAME'] || '').toString().replace(/\u00A0/g,' ').replace(/\s+/g,' ').trim())
+            .map(row => (row['BUYER NAME'] || '').toString().replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim())
             .filter(Boolean)
         )
       );
@@ -115,7 +148,6 @@ export default function Home() {
       }
       setError('');
     } catch (err) {
-      console.error('Import Error:', err);
       setError('Import failed');
     } finally {
       setLoading(false);
@@ -137,7 +169,48 @@ export default function Home() {
     return excelData.filter(row => {
       const millerMatch = selectedMiller === 'all' || row['MILLER NAME'] === selectedMiller;
       const buyerMatch = selectedBuyer === 'all' || normalizeBuyer(row['BUYER NAME']) === normalizeBuyer(selectedBuyer);
-      return millerMatch && buyerMatch;
+
+      // Date range filter
+      let dateMatch = true;
+      if (fromDate || toDate) {
+        const rawDate = row['DATE'] || row['Date'];
+        let rowDate: Date | null = null;
+        if (typeof rawDate === 'number') {
+          rowDate = new Date(new Date(1899, 11, 30).getTime() + rawDate * 86400000);
+        } else if (rawDate) {
+          const parsed = new Date(rawDate);
+          if (!isNaN(parsed.getTime())) rowDate = parsed;
+        }
+        if (rowDate) {
+          if (fromDate && rowDate < fromDate) dateMatch = false;
+          if (toDate && rowDate > toDate) dateMatch = false;
+        }
+      }
+
+      return millerMatch && buyerMatch && dateMatch;
+    });
+  };
+
+  // All buyers (miller+date filtered, NO buyer filter) — used by the Generate All Buyer PDFs panel
+  const getAllBuyerData = () => {
+    return excelData.filter(row => {
+      const millerMatch = selectedMiller === 'all' || row['MILLER NAME'] === selectedMiller;
+      let dateMatch = true;
+      if (fromDate || toDate) {
+        const rawDate = row['DATE'] || row['Date'];
+        let rowDate: Date | null = null;
+        if (typeof rawDate === 'number') {
+          rowDate = new Date(new Date(1899, 11, 30).getTime() + rawDate * 86400000);
+        } else if (rawDate) {
+          const parsed = new Date(rawDate);
+          if (!isNaN(parsed.getTime())) rowDate = parsed;
+        }
+        if (rowDate) {
+          if (fromDate && rowDate < fromDate) dateMatch = false;
+          if (toDate && rowDate > toDate) dateMatch = false;
+        }
+      }
+      return millerMatch && dateMatch;
     });
   };
 
@@ -192,7 +265,7 @@ export default function Home() {
     }
 
     const allMillers = Array.from(new Set(excelData.map(r => r['MILLER NAME']).filter(Boolean)));
-  const allBuyers = Array.from(new Set(excelData.map(r => r['BUYER NAME']).filter(Boolean)));
+    const allBuyers = Array.from(new Set(excelData.map(r => r['BUYER NAME']).filter(Boolean)));
 
     if (calculationSide === 'miller') {
       nextMillers = selectedBuyer === 'all'
@@ -227,7 +300,6 @@ export default function Home() {
     if (selectedMiller !== 'all' && !nextMillers.includes(selectedMiller)) {
       if (nextMillers.length === 1) {
         setSelectedMiller(nextMillers[0]);
-        console.log('[AutoSelect] Single miller after reset:', nextMillers[0]);
       } else {
         setSelectedMiller('all');
       }
@@ -237,16 +309,13 @@ export default function Home() {
     if (!buyerManuallyChosen) {
       if (selectedBuyer === 'all' && nextBuyers.length === 1) {
         setSelectedBuyer(nextBuyers[0]);
-        console.log('[AutoSelect] Single buyer (was all):', nextBuyers[0]);
         return;
       }
       if (selectedBuyer !== 'all' && !nextBuyers.includes(selectedBuyer)) {
         if (nextBuyers.length === 1) {
           setSelectedBuyer(nextBuyers[0]);
-          console.log('[AutoSelect] Corrected buyer to single option:', nextBuyers[0]);
         } else if (nextBuyers.length > 0) {
           setSelectedBuyer(nextBuyers[0]);
-          console.log('[AutoSelect] Defaulted buyer to first option:', nextBuyers[0]);
         } else {
           setSelectedBuyer('all');
         }
@@ -256,16 +325,44 @@ export default function Home() {
       const selNorm = normalizeBuyer(selectedBuyer);
       const stillExists = excelData.some(r => normalizeBuyer(r['BUYER NAME']) === selNorm);
       if (!stillExists) {
-        console.log('[AutoSelect] Manually selected buyer removed from data, resetting to all');
         setSelectedBuyer('all');
         setBuyerManuallyChosen(false);
       }
     }
   }, [selectedMiller, selectedBuyer, excelData, calculationSide, buyerManuallyChosen]);
 
-  const filteredData = useMemo(() => getFilteredData(), [excelData, selectedMiller, selectedBuyer]);
+  const filteredData = useMemo(() => getFilteredData(), [excelData, selectedMiller, selectedBuyer, fromDate, toDate]);
+
+  // Pre-built buyer list for the Generate All panel — miller+date filtered (same period as the preview)
+  const buyerListForPanel = useMemo(() => {
+    const source = getAllBuyerData();
+    const grouped: Record<string, any[]> = {};
+    source.forEach(row => {
+      const buyer = (row['BUYER NAME'] || row['BUYER'] || '').toString().trim();
+      if (!buyer) return;
+      if (!grouped[buyer]) grouped[buyer] = [];
+      grouped[buyer].push(row);
+    });
+    return Object.keys(grouped)
+      .sort((a, b) => a.localeCompare(b))
+      .map((buyer, idx) => ({ buyer, billNo: idx + 1, rows: grouped[buyer] }));
+  }, [excelData, selectedMiller, fromDate, toDate]);
+
+  // Pre-built miller list for the Generate All Miller PDFs panel
+  const millerListForPanel = useMemo(() => {
+    const source = getAllBuyerData(); // same filter: miller+date, no buyer filter
+    const grouped: Record<string, any[]> = {};
+    source.forEach(row => {
+      const miller = (row['MILLER NAME'] || '').toString().trim();
+      if (!miller) return;
+      if (!grouped[miller]) grouped[miller] = [];
+      grouped[miller].push(row);
+    });
+    return Object.keys(grouped)
+      .sort((a, b) => a.localeCompare(b))
+      .map((miller, idx) => ({ miller, billNo: idx + 1, rows: grouped[miller] }));
+  }, [excelData, selectedMiller, fromDate, toDate]);
   useEffect(() => {
-    console.log('[FilterDebug] SelectedBuyer:', selectedBuyer, 'SelectedMiller:', selectedMiller, 'Filtered rows:', filteredData.length);
   }, [filteredData, selectedBuyer, selectedMiller]);
 
   // When buyer changes, auto-select its mapped shop location (if available)
@@ -278,7 +375,6 @@ export default function Home() {
         const foundKey = Object.keys(buyerShopLocMap).find(k => k.toLowerCase() === key.toLowerCase());
         if (foundKey) loc = buyerShopLocMap[foundKey];
       }
-      console.log('[Buyer selection effect] buyer:', key, 'resolved location:', loc);
       if (loc && loc !== selectedShopLocation) {
         setSelectedShopLocation(loc);
       }
@@ -337,12 +433,48 @@ export default function Home() {
                   shopLocation={selectedShopLocation}
                   onShopLocationChange={setSelectedShopLocation}
                   autoMappedShopLocation={selectedBuyer !== 'all' ? buyerShopLocMap[selectedBuyer.trim()] : undefined}
+                  onDateRangeChange={handleDateRangeChange}
                 />
 
                 <div className="summary">
                   <p><strong>Total Quantity:</strong> {totalQuantity}</p>
                   <p><strong>Total Amount:</strong> ₹{totalAmount.toLocaleString()}</p>
                   <p><strong>Total Commission:</strong> ₹{totalCommission.toLocaleString()}</p>
+                </div>
+
+                {/* ── PDF Settings (company name + bank details) ── */}
+                <div className="pdf-settings">
+                  <p className="pdf-settings__title">PDF Settings</p>
+
+                  {/* Company name */}
+                  <div className="pdf-settings__row">
+                    <label htmlFor="companyNameInput" className="pdf-settings__label">Company Name</label>
+                    <input
+                      id="companyNameInput"
+                      type="text"
+                      value={companyName}
+                      onChange={e => setCompanyName(e.target.value)}
+                      className="pdf-settings__input"
+                    />
+                  </div>
+
+                  {/* Bank details */}
+                  <p className="pdf-settings__subtitle">Bank Details</p>
+                  <div className="pdf-settings__bank-grid">
+                    {(['accName', 'accNo', 'bankName', 'ifsc', 'upi'] as const).map(field => (
+                      <div key={field} className="pdf-settings__bank-field">
+                        <label className="pdf-settings__bank-label">
+                          {field === 'accName' ? 'Acc Name' : field === 'accNo' ? 'A/C No' : field === 'bankName' ? 'Bank' : field === 'ifsc' ? 'IFSC' : 'UPI'}
+                        </label>
+                        <input
+                          type="text"
+                          value={bankDetails[field]}
+                          onChange={e => setBankDetails(prev => ({ ...prev, [field]: e.target.value }))}
+                          className="pdf-settings__input"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="preview-wrapper">
@@ -358,6 +490,9 @@ export default function Home() {
                       totalCommission={totalCommission}
                       selectedMiller={selectedMiller}
                       selectedBuyer={selectedBuyer}
+                      companyName={companyName}
+                      bankDetails={bankDetails}
+                      millerListForPanel={millerListForPanel}
                       userBillNo={userBillNo}
                       userBillDate={userBillDate}
                       periodOfBilling={periodOfBilling}
@@ -365,21 +500,24 @@ export default function Home() {
                     />
                   ) : (
                     <DataPreviewBuyerSide
-                        data={filteredData}
-                        commissionRate={commissionRate}
-                        commissionType={commissionType}
-                        fixedRate={fixedRate}
-                        totalTransactions={filteredData.length}
-                        totalQuantity={totalQuantity}
-                        totalAmount={totalAmount}
-                        totalCommission={totalCommission}
-                        selectedMiller={selectedMiller}
-                        selectedBuyer={selectedBuyer}
-                        userBillNo={userBillNo}
-                        userBillDate={userBillDate}
-                        periodOfBilling={periodOfBilling}
-                        selectedShopLoc={selectedShopLocation}
-                        onPeriodOfBillingChange={setPeriodOfBilling}                  
+                      data={filteredData}
+                      buyerListForPanel={buyerListForPanel}
+                      commissionRate={commissionRate}
+                      commissionType={commissionType}
+                      fixedRate={fixedRate}
+                      totalTransactions={filteredData.length}
+                      totalQuantity={totalQuantity}
+                      totalAmount={totalAmount}
+                      totalCommission={totalCommission}
+                      selectedMiller={selectedMiller}
+                      selectedBuyer={selectedBuyer}
+                      companyName={companyName}
+                      bankDetails={bankDetails}
+                      userBillNo={userBillNo}
+                      userBillDate={userBillDate}
+                      periodOfBilling={periodOfBilling}
+                      selectedShopLoc={selectedShopLocation}
+                      onPeriodOfBillingChange={setPeriodOfBilling}
                     />
                   )}
                 </div>
@@ -393,3 +531,4 @@ export default function Home() {
     </main>
   );
 }
+

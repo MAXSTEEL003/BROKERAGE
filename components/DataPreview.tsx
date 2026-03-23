@@ -18,6 +18,11 @@ interface Props {
   totalCommission: number;
   selectedMiller: string;
   selectedBuyer: string;
+  companyName?: string;
+  userBillNo?: string;
+  userBillDate?: string;
+  periodOfBilling?: string;
+  onPeriodOfBillingChange?: (val: string) => void;
 }
 
 const findQuantityField = (row: any) => {
@@ -57,7 +62,8 @@ const DataPreview: React.FC<Props> = ({
   totalAmount,
   totalCommission,
   selectedMiller,
-  selectedBuyer
+  selectedBuyer,
+  companyName = 'Tejas Canvassing Services',
 }) => {
   const calculatedRows = useMemo(() => {
     return data.map((row, idx) => {
@@ -98,7 +104,7 @@ const DataPreview: React.FC<Props> = ({
   // Header
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('Tejas Canvassing Services - Miller Side Report', pageWidth / 2, finalY, { align: 'center' });
+  doc.text(`${companyName} - Miller Side Report`, pageWidth / 2, finalY, { align: 'center' });
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');

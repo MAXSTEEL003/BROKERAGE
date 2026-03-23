@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface Props {
   millers: string[];
@@ -21,7 +21,8 @@ interface Props {
   onPeriodOfBillingChange: (value: string) => void;
   shopLocation: string;
   onShopLocationChange: (value: string) => void;
-  autoMappedShopLocation?: string; // new optional prop for auto mapping
+  autoMappedShopLocation?: string;
+  onDateRangeChange?: (from: Date, to: Date) => void;
 }
 
 const FilterControls: React.FC<Props> = ({
@@ -45,7 +46,8 @@ const FilterControls: React.FC<Props> = ({
   onPeriodOfBillingChange,
   shopLocation,
   onShopLocationChange,
-  autoMappedShopLocation
+  autoMappedShopLocation,
+  onDateRangeChange,
 }) => {
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -125,6 +127,13 @@ const FilterControls: React.FC<Props> = ({
 'TANJORE'
   ];
 
+  const monthIndex = (name: string) => [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
+  ].indexOf(name);
+
+  const isMounted = useRef(false);
+
   useEffect(() => {
     const formatted = `${fromMonth} ${fromYear} to ${toMonth} ${toYear}`;
     onPeriodOfBillingChange(formatted);
@@ -133,6 +142,16 @@ const FilterControls: React.FC<Props> = ({
     localStorage.setItem('fromYear', fromYear);
     localStorage.setItem('toMonth', toMonth);
     localStorage.setItem('toYear', toYear);
+
+    // Only fire date filter AFTER first render (i.e. when user actually changes date selectors)
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
+    const from = new Date(parseInt(fromYear), monthIndex(fromMonth), 1);
+    const toDate = new Date(parseInt(toYear), monthIndex(toMonth) + 1, 0, 23, 59, 59);
+    onDateRangeChange?.(from, toDate);
   }, [fromMonth, fromYear, toMonth, toYear]);
 
   return (

@@ -443,3 +443,104 @@ html, body {
     padding: 1.5rem 1rem;
   }
 }
+
+/* ========== PDF Settings Panel ========== */
+.pdf-settings {
+  background: var(--card-background);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.pdf-settings::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary-blue), var(--secondary-purple));
+}
+
+.pdf-settings__title {
+  margin: 0 0 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary-blue);
+}
+
+.pdf-settings__subtitle {
+  margin: 0.875rem 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.pdf-settings__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.pdf-settings__label {
+  min-width: 120px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pdf-settings__input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-color);
+  background: linear-gradient(135deg, var(--input-background) 0%, rgba(51, 65, 85, 0.8) 100%);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  transition: all var(--transition-normal);
+  width: 100%;
+}
+
+.pdf-settings__input:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background: linear-gradient(135deg, var(--gray-700) 0%, var(--gray-600) 100%);
+}
+
+.pdf-settings__input:hover {
+  border-color: var(--primary-blue);
+}
+
+.pdf-settings__bank-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1rem;
+}
+
+.pdf-settings__bank-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pdf-settings__bank-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+

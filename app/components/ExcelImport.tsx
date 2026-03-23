@@ -85,21 +85,14 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ onDataImport, onMappingExtrac
 
         // Rich debug output
         const entries = Object.entries(buyerShopLocMap);
-        console.group('[Buyer->ShopLoc Mapping]');
-        console.log('Total buyers with mapping:', entries.length);
-        console.log('Sample (first up to 10):', entries.slice(0, 10));
         if (entries.length === 0) {
-          console.warn('No buyer -> shop loc pairs detected. Check column headers (expected: BUYER / BUYER NAMER / BUYER NAME and PLACE / SHOP LOC).');
-          console.log('First row keys sample:', Object.keys(normalizedData[0] || {}));
         }
-        console.groupEnd();
 
         setError('');
         onDataImport(normalizedData);
         onMappingExtracted(buyerShopLocMap);
       } catch (err) {
         setError('Failed to parse Excel file.');
-        console.error(err);
       }
     };
 
