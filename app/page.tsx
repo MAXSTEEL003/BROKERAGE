@@ -43,6 +43,11 @@ export default function Home() {
     upi: '9916416995',
   });
 
+  // Additional company details for PDF header: phone, PAN, GST
+  const [companyPhone, setCompanyPhone] = useState('9916416995');
+  const [companyPAN, setCompanyPAN] = useState('AEBPA6445G');
+  const [companyGST, setCompanyGST] = useState('29AEBPA6445G2Z0');
+
   // Date range filter — driven by FilterControls month/year selects
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
@@ -73,6 +78,12 @@ export default function Home() {
     if (storedBank) {
       try { setBankDetails(JSON.parse(storedBank)); } catch { }
     }
+    const storedPhone = localStorage.getItem('companyPhone');
+    if (storedPhone) setCompanyPhone(storedPhone);
+    const storedPAN = localStorage.getItem('companyPAN');
+    if (storedPAN) setCompanyPAN(storedPAN);
+    const storedGST = localStorage.getItem('companyGST');
+    if (storedGST) setCompanyGST(storedGST);
   }, []);
 
   useEffect(() => {
@@ -82,6 +93,18 @@ export default function Home() {
   useEffect(() => {
     if (isClient) localStorage.setItem('bankDetails', JSON.stringify(bankDetails));
   }, [bankDetails, isClient]);
+
+  useEffect(() => {
+    if (isClient) localStorage.setItem('companyPhone', companyPhone);
+  }, [companyPhone, isClient]);
+
+  useEffect(() => {
+    if (isClient) localStorage.setItem('companyPAN', companyPAN);
+  }, [companyPAN, isClient]);
+
+  useEffect(() => {
+    if (isClient) localStorage.setItem('companyGST', companyGST);
+  }, [companyGST, isClient]);
 
   const handleDataImport = async (data: any[]) => {
     try {
@@ -475,6 +498,38 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Additional company details: Phone / PAN / GST */}
+                  <p className="pdf-settings__subtitle">Company Details (for PDF header)</p>
+                  <div className="pdf-settings__bank-grid">
+                    <div className="pdf-settings__bank-field">
+                      <label className="pdf-settings__bank-label">Phone</label>
+                      <input
+                        type="text"
+                        value={companyPhone}
+                        onChange={e => setCompanyPhone(e.target.value)}
+                        className="pdf-settings__input"
+                      />
+                    </div>
+                    <div className="pdf-settings__bank-field">
+                      <label className="pdf-settings__bank-label">PAN No</label>
+                      <input
+                        type="text"
+                        value={companyPAN}
+                        onChange={e => setCompanyPAN(e.target.value)}
+                        className="pdf-settings__input"
+                      />
+                    </div>
+                    <div className="pdf-settings__bank-field">
+                      <label className="pdf-settings__bank-label">GST No</label>
+                      <input
+                        type="text"
+                        value={companyGST}
+                        onChange={e => setCompanyGST(e.target.value)}
+                        className="pdf-settings__input"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="preview-wrapper">
@@ -492,6 +547,9 @@ export default function Home() {
                       selectedBuyer={selectedBuyer}
                       companyName={companyName}
                       bankDetails={bankDetails}
+                      companyPhone={companyPhone}
+                      companyPAN={companyPAN}
+                      companyGST={companyGST}
                       millerListForPanel={millerListForPanel}
                       userBillNo={userBillNo}
                       userBillDate={userBillDate}
@@ -513,6 +571,9 @@ export default function Home() {
                       selectedBuyer={selectedBuyer}
                       companyName={companyName}
                       bankDetails={bankDetails}
+                      companyPhone={companyPhone}
+                      companyPAN={companyPAN}
+                      companyGST={companyGST}
                       userBillNo={userBillNo}
                       userBillDate={userBillDate}
                       periodOfBilling={periodOfBilling}

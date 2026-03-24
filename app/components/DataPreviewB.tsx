@@ -40,6 +40,9 @@ interface Props {
   onPeriodOfBillingChange: (value: string) => void;
   companyName?: string;
   bankDetails?: BankDetails;
+  companyPhone?: string;
+  companyPAN?: string;
+  companyGST?: string;
   buyerListForPanel?: { buyer: string; billNo: number; rows: any[] }[];
 }
 
@@ -124,6 +127,9 @@ const buildBuyerPDF = async (params: {
   totalQuantity: number;
   totalCommission: number;
   bank: BankDetails;
+  companyPhone?: string;
+  companyPAN?: string;
+  companyGST?: string;
 }): Promise<jsPDF> => {
   const {
     companyHeader,
@@ -159,7 +165,7 @@ const buildBuyerPDF = async (params: {
     { align: 'center' }
   );
   doc.text(
-    'Phone: 9916416995 ; PAN NO: AEBPA6445G; GST NO: 29AEBPA6445G2Z0',
+    `Phone: ${params.companyPhone || bank.upi} ; PAN NO: ${params.companyPAN || 'AEBPA6445G'}; GST NO: ${params.companyGST || '29AEBPA6445G2Z0'}`,
     pageWidth / 2,
     finalY + 45,
     { align: 'center' }
@@ -339,6 +345,9 @@ const DataPreviewBuyerSide: React.FC<Props> = ({
   selectedShopLoc,
   companyName = 'Thejas Canvasing',
   bankDetails,
+  companyPhone,
+  companyPAN,
+  companyGST,
   buyerListForPanel,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -392,6 +401,9 @@ const DataPreviewBuyerSide: React.FC<Props> = ({
       totalQuantity,
       totalCommission,
       bank: bankDetails ?? DEFAULT_BANK,
+      companyPhone: companyPhone,
+      companyPAN: companyPAN,
+      companyGST: companyGST,
     });
 
     const safeBuyer =
@@ -418,6 +430,9 @@ const DataPreviewBuyerSide: React.FC<Props> = ({
       totalQuantity: buyerQty,
       totalCommission: buyerComm,
       bank: bankDetails ?? DEFAULT_BANK,
+      companyPhone: companyPhone,
+      companyPAN: companyPAN,
+      companyGST: companyGST,
     });
     const safeFileName = buyer.replace(/[^a-z0-9]/gi, '_').substring(0, 40);
     doc.save(`Bill_${String(billNo).padStart(3, '0')}_${safeFileName}.pdf`);

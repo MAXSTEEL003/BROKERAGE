@@ -39,6 +39,9 @@ interface Props {
   onPeriodOfBillingChange: (value: string) => void;
   companyName?: string;
   bankDetails?: BankDetails;
+  companyPhone?: string;
+  companyPAN?: string;
+  companyGST?: string;
   millerListForPanel?: { miller: string; billNo: number; rows: any[] }[];
 }
 
@@ -122,8 +125,11 @@ const buildMillerPDF = async (params: {
   totalQuantity: number;
   totalCommission: number;
   bank: BankDetails;
+  companyPhone?: string;
+  companyPAN?: string;
+  companyGST?: string;
 }): Promise<jsPDF> => {
-  const { companyHeader, billNo, billDate, periodOfBilling, millerName, rows, totalQuantity, totalCommission, bank } = params;
+  const { companyHeader, billNo, billDate, periodOfBilling, millerName, rows, totalQuantity, totalCommission, bank, companyPhone, companyPAN, companyGST } = params;
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -144,7 +150,7 @@ const buildMillerPDF = async (params: {
     pageWidth / 2, finalY + 25, { align: 'center' }
   );
   doc.text(
-    `Phone: ${bank.upi} ; PAN NO: AEBPA6445G; GST NO: 29AEBPA6445G2Z0`,
+    `Phone: ${companyPhone || bank.upi} ; PAN NO: ${companyPAN || 'AEBPA6445G'}; GST NO: ${companyGST || '29AEBPA6445G2Z0'}`,
     pageWidth / 2, finalY + 45, { align: 'center' }
   );
   doc.setLineWidth(1.5);
@@ -288,6 +294,9 @@ const DataPreview: React.FC<Props> = ({
   periodOfBilling,
   companyName = 'Tejas Canvassing',
   bankDetails,
+  companyPhone,
+  companyPAN,
+  companyGST,
   millerListForPanel,
 }) => {
   const [showMillerList, setShowMillerList] = useState(false);
@@ -328,6 +337,9 @@ const DataPreview: React.FC<Props> = ({
       totalQuantity,
       totalCommission,
       bank: bankDetails ?? DEFAULT_BANK,
+      companyPhone: companyPhone,
+      companyPAN: companyPAN,
+      companyGST: companyGST,
     });
     const safeMiller = selectedMiller && selectedMiller !== 'all'
       ? selectedMiller.replace(/[^a-z0-9]/gi, '_')
@@ -350,6 +362,9 @@ const DataPreview: React.FC<Props> = ({
       totalQuantity: millerQty,
       totalCommission: millerComm,
       bank: bankDetails ?? DEFAULT_BANK,
+      companyPhone: companyPhone,
+      companyPAN: companyPAN,
+      companyGST: companyGST,
     });
     const safeFileName = miller.replace(/[^a-z0-9]/gi, '_').substring(0, 40);
     doc.save(`Bill_${String(billNo).padStart(3, '0')}_${safeFileName}.pdf`);
