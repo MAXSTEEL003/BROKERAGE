@@ -1,0 +1,5 @@
+# Create server.js in the root directory
+New-Item -Path "server.js" -ItemType File -Force
+
+
+
