@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Security rules for Collection Status & Due List entries
+    match /collections/{docId} {
+      // Allow read access to collection entries
+      allow read: if true;
+      
+      // Allow write/update access with basic payload verification
+      allow write: if request.resource.data != null;
+    }
+    
+  }
+}
