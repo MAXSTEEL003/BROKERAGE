@@ -178,7 +178,7 @@ export const CollectionStatus: React.FC<Props> = ({
   const [gstViewFilter, setGstViewFilter] = useState<'All' | 'With GST' | 'Without GST'>(() => getStoredString('collection_gstViewFilter', 'All') as any);
   const [filterPaymentStatus, setFilterPaymentStatus] = useState<'All' | 'Not Received' | 'Received' | 'Partial'>(() => getStoredString('collection_filterPaymentStatus', 'All') as any);
   const [unpaidPaidTillFilter, setUnpaidPaidTillFilter] = useState<string>(() => getStoredString('collection_unpaidPaidTillFilter', 'all'));
-  const [selectedPlaces, setSelectedPlaces] = useState<string[]>(() => getStoredJSON('collection_selectedPlaces', []));
+  const [selectedPlaces, setSelectedPlaces] = useState<string[]>(() => getStoredJSON('collection_selectedPlaces', ['all']));
   const [buyerSearch, setBuyerSearch] = useState<string>(() => getStoredString('collection_buyerSearch', ''));
 
   // PDF Generation Modal State with localStorage persistence
@@ -554,6 +554,7 @@ export const CollectionStatus: React.FC<Props> = ({
 
   // ⚡ PERFORMANCE OPTIMIZATION 3: Place lookups using Set
   const selectedPlacesSet = useMemo(() => new Set(selectedPlaces.map(p => p.toLowerCase())), [selectedPlaces]);
+  const pdfSelectedPlacesSet = useMemo(() => new Set(pdfSelectedPlaces.map(p => p.toLowerCase())), [pdfSelectedPlaces]);
   const isAllPlaces = useMemo(
     () => selectedPlaces.includes('all') || selectedPlaces.length === 0 || selectedPlaces.length === allPlacesList.length,
     [selectedPlaces, allPlacesList.length]
@@ -731,7 +732,6 @@ export const CollectionStatus: React.FC<Props> = ({
     setShowPdfModal(false);
 
     const isPdfAllPlaces = pdfSelectedPlaces.includes('all') || pdfSelectedPlaces.length === 0;
-    const pdfSelectedPlacesSet = new Set(pdfSelectedPlaces.map(p => p.toLowerCase()));
 
     const pdfRows = aggregatedBuyers.filter(b => {
       if (pdfPaymentFilter === 'Received' && b.tallyStatus !== 'Tallied' && b.paymentStatus !== 'Received') return false;
@@ -1222,78 +1222,35 @@ export const CollectionStatus: React.FC<Props> = ({
             </div>
           )}
 
-          {/* ⚡ MULTI-SELECT TICK BOX PLACE FILTER */}
-          <div style={{ gridColumn: '1 / -1' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
-              <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>📍</span> Place Filter ({allPlacesList.length} Places Available)
-              </label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedPlaces(['all'])}
-                  style={{ background: 'transparent', border: 'none', color: '#38bdf8', fontSize: '10.5px', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  All
-                </button>
-                <span style={{ color: '#475569' }}>|</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedPlaces([])}
-                  style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '10.5px', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  Clear (Uncheck All)
-                </button>
-              </div>
-            </div>
-
-            <div style={{
-              background: '#0f172a',
-              borderRadius: '8px',
-              padding: '7px 10px',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px 14px',
-              alignItems: 'center',
-              maxHeight: '120px',
-              overflowY: 'auto'
-            }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', cursor: 'pointer', color: '#f1f5f9', fontWeight: 700 }}>
-                <input
-                  type="checkbox"
-                  checked={selectedPlaces.includes('all')}
-                  onChange={() => setSelectedPlaces(selectedPlaces.includes('all') ? [] : ['all'])}
-                  style={{ accentColor: '#38bdf8', cursor: 'pointer' }}
-                />
-                🌟 All Places
-              </label>
-              {allPlacesList.map(p => {
-                const pLower = p.toLowerCase();
-                const isChecked = !selectedPlaces.includes('all') && selectedPlacesSet.has(pLower);
-                return (
-                  <label key={p} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: isChecked ? '#38bdf8' : '#cbd5e1', fontWeight: isChecked ? 700 : 400 }}>
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => {
-                        if (selectedPlaces.includes('all')) {
-                          setSelectedPlaces([pLower]);
-                        } else if (selectedPlacesSet.has(pLower)) {
-                          const next = selectedPlaces.filter(x => x.toLowerCase() !== pLower);
-                          setSelectedPlaces(next);
-                        } else {
-                          const next = [...selectedPlaces, pLower];
-                          setSelectedPlaces(next.length === allPlacesList.length ? ['all'] : next);
-                        }
-                      }}
-                      style={{ accentColor: '#38bdf8', cursor: 'pointer' }}
-                    />
-                    {p}
-                  </label>
-                );
-              })}
-            </div>
+          {/* Place Filter Dropdown */}
+          <div>
+            <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#38bdf8', marginBottom: '5px' }}>
+              📍 Place Filter
+            </label>
+            <select
+              value={selectedPlaces.includes('all') ? 'all' : selectedPlaces[0] || 'all'}
+              onChange={e => {
+                const val = e.target.value;
+                setSelectedPlaces(val === 'all' ? ['all'] : [val]);
+              }}
+              style={{
+                width: '100%',
+                padding: '7px 10px',
+                borderRadius: '8px',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                background: '#0f172a',
+                color: '#f8fafc',
+                fontSize: '12px',
+                fontWeight: 700,
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="all">🌟 All Places ({allPlacesList.length})</option>
+              {allPlacesList.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
           </div>
 
           {/* Search Input */}
