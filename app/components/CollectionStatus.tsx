@@ -761,35 +761,35 @@ export const CollectionStatus: React.FC<Props> = ({
       return `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
-    // ── Company Header ──
+    // ── Company Header (Compact Top Layout for Maximum Page Capacity) ──
     doc.setTextColor(0, 0, 255);
-    doc.setFontSize(22);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text((companyName || 'THEJAS CANVASING').toUpperCase(), pageWidth / 2, finalY, { align: 'center' });
 
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(9.5);
+    doc.setFontSize(8.5);
     doc.setFont('helvetica', 'bold');
     doc.text(
       'No. 123, 1st Floor, 4th main Road, Yeshwanthpur, APMC Yard, Bengaluru - 560022',
-      pageWidth / 2, finalY + 22, { align: 'center' }
+      pageWidth / 2, finalY + 16, { align: 'center' }
     );
     doc.text(
       `Phone: ${companyPhone || (bankDetails?.upi ?? DEFAULT_BANK.upi)} ; PAN NO: ${companyPAN || 'AEBPA6445G'}; GST NO: ${companyGST || '29AEBPA6445G2Z0'}`,
-      pageWidth / 2, finalY + 40, { align: 'center' }
+      pageWidth / 2, finalY + 28, { align: 'center' }
     );
-    doc.setLineWidth(1.5);
+    doc.setLineWidth(1.2);
     doc.setDrawColor(0, 0, 255);
-    doc.line(20, finalY + 52, pageWidth - 20, finalY + 52);
-    finalY += 72;
+    doc.line(20, finalY + 36, pageWidth - 20, finalY + 36);
+    finalY += 48;
 
-    doc.setFontSize(13);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(185, 28, 28); // Vibrant Red title
     doc.text('COLLECTION STATUS & BROKERAGE DUE LIST', pageWidth / 2, finalY, { align: 'center' });
-    finalY += 16;
+    finalY += 13;
 
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(71, 85, 105);
 
@@ -798,19 +798,19 @@ export const CollectionStatus: React.FC<Props> = ({
     const gstLabel = pdfGstFilter === 'With GST' ? 'GST Only' : pdfGstFilter === 'Without GST' ? 'NO GST Only' : 'All (GST + NO GST)';
     const filterStr = `Period: ${monthLabel}   |   Places: ${placeLabel}   |   Mode: ${gstLabel}   |   Status: ${pdfPaymentFilter.toUpperCase()}`;
     doc.text(filterStr, pageWidth / 2, finalY, { align: 'center' });
-    finalY += 15;
+    finalY += 12;
 
     const shouldIncludeGstCol = pdfIncludeGstCol && (showGstInPdf !== false);
 
     const tableHeadRow = ['#', 'Buyer Name', 'Place'];
-    if (pdfIncludeBillNosCol) tableHeadRow.push('Bill Nos');
+    if (pdfIncludeBillNosCol) tableHeadRow.push('Bill No');
     tableHeadRow.push('Qty (qtl)');
     tableHeadRow.push('Mode');
-    if (pdfIncludeCommCol) tableHeadRow.push('Base Comm (₹)');
-    if (shouldIncludeGstCol) tableHeadRow.push('18% GST (₹)');
-    tableHeadRow.push('Payable (₹)');
-    if (pdfIncludeReceivedCol) tableHeadRow.push('Received (₹)');
-    if (pdfIncludeBalanceCol) tableHeadRow.push('Balance Due (₹)');
+    if (pdfIncludeCommCol) tableHeadRow.push('Base Comm');
+    if (shouldIncludeGstCol) tableHeadRow.push('18% GST');
+    tableHeadRow.push('Payable');
+    if (pdfIncludeReceivedCol) tableHeadRow.push('Received');
+    if (pdfIncludeBalanceCol) tableHeadRow.push('Balance');
     if (pdfIncludePaidTillCol) tableHeadRow.push('Paid Till');
     if (pdfIncludeStatusCol) tableHeadRow.push('Status');
     if (pdfIncludeRemarksCol) tableHeadRow.push('Remarks');
@@ -823,7 +823,7 @@ export const CollectionStatus: React.FC<Props> = ({
       if (pdfIncludeCommCol) rowArr.push(fmtNum(item.baseComm));
       if (shouldIncludeGstCol) rowArr.push(fmtNum(item.gstAmt));
       rowArr.push(fmtNum(item.totalPayable));
-      if (pdfIncludeReceivedCol) rowArr.push(item.receivedAmt ? fmtNum(item.receivedAmt) : '-');
+      if (pdfIncludeReceivedCol) rowArr.push(fmtNum(item.receivedAmt));
       if (pdfIncludeBalanceCol) rowArr.push(fmtNum(item.balanceDue));
       if (pdfIncludePaidTillCol) rowArr.push(item.paidTillMonth || '-');
       if (pdfIncludeStatusCol) rowArr.push(item.tallyStatus === 'Tallied' ? 'Tallied' : item.tallyStatus === 'Partial' ? 'Partial' : 'Pending');
@@ -838,10 +838,23 @@ export const CollectionStatus: React.FC<Props> = ({
     const totalReceivedAll = pdfRows.reduce((s, b) => s + b.receivedAmt, 0);
     const totalBalanceAll = pdfRows.reduce((s, b) => s + b.balanceDue, 0);
 
+    const tableFootRow: string[] = ['TOTAL', '', ''];
+    if (pdfIncludeBillNosCol) tableFootRow.push('');
+    tableFootRow.push(fmtNum(totalQtyAll)); // Show ONLY Total Qty
+    tableFootRow.push('');
+    if (pdfIncludeCommCol) tableFootRow.push('');
+    if (shouldIncludeGstCol) tableFootRow.push('');
+    tableFootRow.push('');
+    if (pdfIncludeReceivedCol) tableFootRow.push('');
+    if (pdfIncludeBalanceCol) tableFootRow.push('');
+    if (pdfIncludePaidTillCol) tableFootRow.push('');
+    if (pdfIncludeStatusCol) tableFootRow.push('');
+    if (pdfIncludeRemarksCol) tableFootRow.push('');
+
     const columnStyles: Record<number, any> = {};
     tableHeadRow.forEach((colName, index) => {
       if (colName === '#') {
-        columnStyles[index] = { halign: 'center', cellWidth: 18 };
+        columnStyles[index] = { halign: 'center', cellWidth: 14 };
       } else if (colName === 'Buyer Name') {
         columnStyles[index] = { halign: 'left', fontStyle: 'bold' };
       } else if (colName === 'Place') {
@@ -859,16 +872,17 @@ export const CollectionStatus: React.FC<Props> = ({
       startY: finalY,
       head: [tableHeadRow],
       body: tableBody,
+      foot: [tableFootRow],
       theme: 'grid',
       styles: {
         font: 'helvetica',
-        fontSize: 8.2,
-        cellPadding: 4,
-        lineWidth: 0.3,
+        fontSize: 6.8, // Compact font size to fit maximum rows in single page
+        cellPadding: 1.8, // Reduced padding for high density
+        lineWidth: 0.1,
         lineColor: [203, 213, 225],
         halign: 'left',
         valign: 'middle',
-        minCellHeight: 16,
+        minCellHeight: 11,
       },
       headStyles: {
         fillColor: [30, 41, 59], // Sleek Dark Slate column headings
@@ -876,10 +890,21 @@ export const CollectionStatus: React.FC<Props> = ({
         halign: 'center',
         valign: 'middle',
         fontStyle: 'bold',
-        fontSize: 9,
-        lineWidth: 0.4,
+        fontSize: 7,
+        lineWidth: 0.15,
         lineColor: [51, 65, 85],
-        cellPadding: 5.5,
+        cellPadding: { top: 2.5, bottom: 2.5, left: 1, right: 1 },
+        overflow: 'linebreak',
+      },
+      footStyles: {
+        fillColor: [241, 245, 249],
+        textColor: [15, 23, 42],
+        fontStyle: 'bold',
+        fontSize: 7,
+        valign: 'middle',
+        lineWidth: 0.2,
+        lineColor: [148, 163, 184],
+        cellPadding: 2.2,
       },
       columnStyles: columnStyles,
       margin: { left: marginX, right: marginX, top: 20, bottom: 20 },
@@ -908,8 +933,16 @@ export const CollectionStatus: React.FC<Props> = ({
       );
     }
 
-    const fileSuffix = pdfMonthFilter === 'all' ? 'All_Months' : pdfMonthFilter.replace(/\s+/g, '_');
-    doc.save(`Collection_Due_List_${fileSuffix}.pdf`);
+    let placeSuffix = 'All_Places';
+    if (!isPdfAllPlaces && pdfSelectedPlaces.length > 0) {
+      placeSuffix = pdfSelectedPlaces
+        .map(p => p.trim())
+        .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+        .join('_')
+        .replace(/[^a-zA-Z0-9_]/g, '');
+    }
+    const monthSuffix = pdfMonthFilter === 'all' ? '' : `_${pdfMonthFilter.replace(/\s+/g, '_')}`;
+    doc.save(`Collection_Due_List_${placeSuffix}${monthSuffix}.pdf`);
   };
 
   return (
